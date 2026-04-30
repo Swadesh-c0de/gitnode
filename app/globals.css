@@ -1,0 +1,276 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variables ─────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #0a0a0a;
+    --card-foreground: #ffffff;
+    --popover: #0a0a0a;
+    --popover-foreground: #ffffff;
+    --primary: #ffffff;
+    --primary-foreground: #000000;
+    --secondary: #1a1a1a;
+    --secondary-foreground: #ffffff;
+    --muted: #0a0a0a;
+    --muted-foreground: #737373;
+    --accent: #ffffff;
+    --accent-foreground: #000000;
+    --destructive: #ff4444;
+    --destructive-foreground: #ffffff;
+    --border: rgba(255, 255, 255, 0.08);
+    --input: rgba(255, 255, 255, 0.05);
+    --ring: #ffffff;
+    --radius: 0rem;
+
+    /* Specialized Tokens */
+    --surface: #050505;
+    --surface-low: #0a0a0a;
+    --surface-high: #141414;
+    --surface-bright: #1f1f1f;
+    --outline-variant: rgba(255, 255, 255, 0.1);
+  }
+
+  * {
+    box-sizing: border-box;
+    cursor: crosshair;
+    /* Premium technical feel */
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    background-color: var(--background);
+    overflow-x: hidden;
+    letter-spacing: -0.01em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tighter;
+  }
+}
+
+/* Premium Utilities */
+@layer utilities {
+  .glass-panel {
+    @apply bg-black/40 backdrop-blur-[24px] border border-white/10;
+  }
+
+  .tonal-shift {
+    background: linear-gradient(180deg, rgba(10, 10, 10, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%);
+    backdrop-filter: blur(12px);
+  }
+
+  .label-sm {
+    font-size: clamp(0.625rem, 0.58rem + 0.2vw, 0.6875rem);
+    @apply font-black uppercase tracking-[0.3em] text-white/40;
+  }
+
+  .display-lg {
+    @apply text-5xl md:text-7xl lg:text-9xl font-black tracking-tighter text-white leading-[0.8];
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .instrument-border {
+    @apply border-[0.5px] border-white/10;
+  }
+
+  .technical-label {
+    @apply font-mono text-[9px] tracking-[0.3em] uppercase text-white/30;
+  }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── React Flow Overrides ──────────────────────────────────────── */
+.react-flow__node {
+  cursor: pointer !important;
+}
+
+.react-flow__node.selected {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__controls {
+  border-radius: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls button {
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: transparent !important;
+  color: white !important;
+}
+
+.react-flow__controls button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.react-flow__minimap {
+  border-radius: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* ─── Highlight.js Premium Monochromatic Theme ──────────────────── */
+.hljs {
+  color: #ffffff;
+  background: transparent;
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: #a3a3a3;
+}
+
+.hljs-number,
+.hljs-literal {
+  color: #737373;
+}
+
+.hljs-comment {
+  color: #404040;
+  font-style: italic;
+}
+
+.hljs-attr,
+.hljs-attribute {
+  color: #d4d4d4;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.hljs-function .hljs-title {
+  color: #ffffff;
+}
+
+.hljs-params {
+  color: #a3a3a3;
+}
+
+/* ─── Animations ────────────────────────────────────────────────── */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-20px) rotate(0.5deg);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.animate-float {
+  animation: float 10s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+}
+
+/* ─── Glass Effect ──────────────────────────────────────────────── */
+.glass {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Gradient Text Replacement ────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(180deg, #ffffff 0%, #737373 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-glow {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+}
