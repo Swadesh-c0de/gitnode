@@ -36,7 +36,7 @@ export default function RepoPage() {
   } = useRepoStore();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(420);
+  const [sidebarWidth, setSidebarWidth] = useState(360);
   const [isResizing, setIsResizing] = useState(false);
 
   const startResizing = useCallback(() => {
@@ -69,9 +69,10 @@ export default function RepoPage() {
   const loadRepo = useCallback(async () => {
     reset();
     setRepo(owner, repo);
-    setLoading(true, 'Initializing...');
+    setLoading(true, 'Initializing Connection...');
 
     try {
+      // 1. Fetch Metadata (Critical Path)
       const metaRes = await fetch(`/api/repo?owner=${owner}&repo=${repo}`);
       if (!metaRes.ok) {
         const data = await metaRes.json();
@@ -87,42 +88,51 @@ export default function RepoPage() {
       setLanguages(metaData.languages || {});
       setContributors(metaData.contributors || []);
 
-      setLoading(true, 'Mapping files...');
-      const treeRes = await fetch(`/api/tree?owner=${owner}&repo=${repo}`);
+      setLoading(true, 'Synthesizing Architecture...');
+
+      // 2. Parallelize independent data fetches
+      const [treeRes, parseRes] = await Promise.all([
+        fetch(`/api/tree?owner=${owner}&repo=${repo}`),
+        fetch(`/api/parse?owner=${owner}&repo=${repo}&branch=${metaData.metadata.defaultBranch}`).catch(() => null)
+      ]);
+
       if (!treeRes.ok) throw new Error('Failed to index file tree');
       const treeData = await treeRes.json();
       setFileTree(treeData.tree || []);
 
-      setLoading(true, 'Analyzing dependencies...');
-      try {
-        const parseRes = await fetch(`/api/parse?owner=${owner}&repo=${repo}&branch=${metaData.metadata.defaultBranch}`);
-        if (parseRes.ok) {
-          const parseData = await parseRes.json();
-          useRepoStore.setState({ importEdges: parseData.edges || [] });
-        }
-      } catch (err) {
-        console.warn('Dependency mapping failed', err);
+      if (parseRes && parseRes.ok) {
+        const parseData = await parseRes.json();
+        useRepoStore.setState({ importEdges: parseData.edges || [] });
       }
 
-      // Tech stack detection
+      // 3. Optimized Tech Stack Detection
       const configFiles: Record<string, string> = {};
       const configNames = ['package.json', 'requirements.txt', 'Cargo.toml', 'go.mod', 'pom.xml', 'build.gradle'];
-      for (const name of configNames) {
-        const exists = (treeData.tree || []).some(
-          (n: { name: string; type: string }) => n.name === name && n.type === 'file'
+      
+      const fileExistanceMap = new Set((treeData.tree || []).map((n: { name: string }) => n.name));
+      const filesToFetch = configNames.filter(name => fileExistanceMap.has(name));
+
+      if (filesToFetch.length > 0) {
+        const fileContents = await Promise.all(
+          filesToFetch.map(async (name) => {
+            try {
+              const res = await fetch(`/api/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(name)}`);
+              if (res.ok) {
+                const data = await res.json();
+                return { name, content: data.content };
+              }
+            } catch { /* skip */ }
+            return null;
+          })
         );
-        if (exists) {
-          try {
-            const fileRes = await fetch(`/api/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(name)}`);
-            if (fileRes.ok) {
-              const fileData = await fileRes.json();
-              configFiles[name] = fileData.content;
-            }
-          } catch { /* skip */ }
+
+        fileContents.forEach(fc => {
+          if (fc) configFiles[fc.name] = fc.content;
+        });
+
+        if (Object.keys(configFiles).length > 0) {
+          setTechStack(detectTechStack(configFiles));
         }
-      }
-      if (Object.keys(configFiles).length > 0) {
-        setTechStack(detectTechStack(configFiles));
       }
 
       setLoading(false);
@@ -243,7 +253,7 @@ export default function RepoPage() {
                   <button
                     key={tab.key}
                     onClick={() => setSidebarTab(tab.key)}
-                    className={`relative flex-1 flex flex-col items-center justify-center py-6 transition-all group ${sidebarTab === tab.key ? 'bg-white/[0.02]' : 'hover:bg-white/[0.01]'}`}
+                    className={`relative flex-1 flex flex-col items-center justify-center py-4 transition-all group ${sidebarTab === tab.key ? 'bg-white/[0.02]' : 'hover:bg-white/[0.01]'}`}
                   >
                     <tab.icon className={`w-3.5 h-3.5 mb-2 transition-opacity ${sidebarTab === tab.key ? 'opacity-100' : 'opacity-20 group-hover:opacity-40'}`} />
                     <span className={`text-[8px] font-black uppercase tracking-[0.4em] transition-colors ${sidebarTab === tab.key ? 'text-white' : 'text-white/20'}`}>
@@ -256,9 +266,8 @@ export default function RepoPage() {
                 ))}
               </div>
 
-              {/* Tab Body */}
               <div className="flex-1 overflow-hidden relative">
-                <div className="h-full overflow-y-auto scrollbar-none px-6 py-8">
+                <div className="h-full overflow-y-auto scrollbar-none px-4 py-6">
                   {sidebarTab === 'structure' && <FileTree />}
                   {sidebarTab === 'preview' && <FilePreview />}
                   {sidebarTab === 'stats' && <RepoStats />}
@@ -268,10 +277,8 @@ export default function RepoPage() {
               {/* Metadata Footer */}
               <div className="h-12 border-t border-white/[0.05] bg-black/60 flex items-center justify-between px-10">
                 <div className="flex items-center gap-3">
-                  <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
                   <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.4em]">Section::{sidebarTab}</span>
                 </div>
-                <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest">GitNode_Observatory_v1.0</span>
               </div>
             </div>
           </motion.aside>

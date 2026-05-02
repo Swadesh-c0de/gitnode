@@ -155,6 +155,7 @@ export interface RepoState {
   importEdges: ImportEdge[];
 
   // UI State
+  viewMode: 'constellation' | 'tree';
   selectedNode: GraphNode | null;
   selectedFilePath: string | null;
   fileContent: string | null;
@@ -178,6 +179,7 @@ export interface RepoState {
   selectNode: (node: GraphNode | null) => void;
   setFileContent: (content: string | null) => void;
   setSidebarTab: (tab: 'structure' | 'preview' | 'stats') => void;
+  setViewMode: (mode: 'constellation' | 'tree') => void;
   setFilters: (filters: Partial<GraphFilters>) => void;
   setLoading: (loading: boolean, message?: string) => void;
   setError: (error: AppError | null) => void;

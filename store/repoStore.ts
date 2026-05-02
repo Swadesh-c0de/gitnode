@@ -41,6 +41,7 @@ export const useRepoStore = create<RepoState>((set) => ({
   importEdges: [],
 
   // UI State
+  viewMode: 'tree',
   selectedNode: null,
   selectedFilePath: null,
   fileContent: null,
@@ -80,6 +81,8 @@ export const useRepoStore = create<RepoState>((set) => ({
     set({ fileContent: content, isLoadingContent: false }),
 
   setSidebarTab: (tab: 'structure' | 'preview' | 'stats') => set({ sidebarTab: tab }),
+  
+  setViewMode: (mode: 'constellation' | 'tree') => set({ viewMode: mode }),
 
   setFilters: (filters: Partial<GraphFilters>) =>
     set((state) => ({
@@ -108,9 +111,20 @@ export const useRepoStore = create<RepoState>((set) => ({
       fileContent: null,
       isLoadingContent: false,
       sidebarTab: 'structure',
+      viewMode: 'tree',
       filters: DEFAULT_FILTERS,
       isLoading: false,
       loadingMessage: '',
       error: null,
     }),
 }));
+
+// Performance-optimized selectors for production
+export const selectMetadata = (state: RepoState) => state.metadata;
+export const selectViewMode = (state: RepoState) => state.viewMode;
+export const selectIsLoading = (state: RepoState) => state.isLoading;
+export const selectFilters = (state: RepoState) => state.filters;
+export const selectNodes = (state: RepoState) => state.nodes;
+export const selectEdges = (state: RepoState) => state.edges;
+export const selectImportEdges = (state: RepoState) => state.importEdges;
+

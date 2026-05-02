@@ -66,7 +66,7 @@ export default function FileTree() {
   return (
     <div className="flex flex-col h-full bg-black/40 backdrop-blur-md">
       {/* Search Section */}
-      <div className="px-6 py-8 border-b border-white/5 bg-white/[0.01]">
+      <div className="px-5 py-6 border-b border-white/5 bg-white/[0.01]">
         <div className="flex flex-col gap-4">
           <span className="text-[9px] font-black tracking-[0.5em] text-white/50 uppercase">Index_Structure</span>
           <div className="relative group">
@@ -130,7 +130,7 @@ function TreeItem({
   return (
     <button
       onClick={() => (isDir ? onToggle(node.path) : onClick(node))}
-      className={`relative w-full flex items-center gap-4 px-6 py-2.5 text-left transition-all group ${isSelected ? 'bg-white/[0.06]' : 'hover:bg-white/[0.02]'
+      className={`relative w-full flex items-center gap-4 px-5 py-2 text-left transition-all group ${isSelected ? 'bg-white/[0.06]' : 'hover:bg-white/[0.02]'
         }`}
       style={{ paddingLeft: `${depth * 16 + 32}px` }}
     >
@@ -158,7 +158,7 @@ function TreeItem({
 
       {/* Name */}
       <span
-        className={`text-[12px] font-black tracking-[0.1em] uppercase truncate z-10 transition-colors ${isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'
+        className={`text-[11px] font-black tracking-[0.1em] uppercase truncate z-10 transition-colors ${isSelected ? 'text-white' : 'text-white/50 group-hover:text-white/80'
           }`}
       >
         {node.name}

@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GITNODE
 
-## Getting Started
+**Visualizing the Architecture of the Open Source World.**
 
-First, run the development server:
+GitNode is a high-performance, cinematic repository observatory engineered to decode complex codebases. It synthesizes raw file structures into interactive force-directed constellations and hierarchical data trees, exposing the neural pathways of your software architecture.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**Access Point**: [https://git-node.vercel.app](https://git-node.vercel.app)
+
+---
+
+## Features
+
+- **Constellation View**: A physics-based force-directed graph that maps file dependencies and import relationships into a galactic network.
+- **Tree Structure View**: A sleek, hierarchical visualization for deep directory exploration with intuitive expansion and depth controls.
+- **Identity Inspector**: Compact, real-time node metrics and file metadata analysis.
+- **Observatory Analytics**: Deep-dive repo statistics including language density, contributor velocity, and tech stack detection.
+- **Premium Aesthetic**: Pure black obsidian interface with minimalist typography and smooth, hardware-accelerated animations.
+
+---
+
+## 🛠️ SYSTEM SPECIFICATIONS
+
+| COMPONENT | SPECIFICATION |
+| :--- | :--- |
+| **CORE ENGINE** | Next.js 15+ / App Router |
+| **VISUALIZATION** | D3.js v7 / Physics Core |
+| **STATE LOGIC** | Zustand / Flux Architecture |
+| **ANIMATION** | Framer Motion / 60FPS |
+| **STYLING** | Tailwind CSS / Obsidian Theme |
+
+---
+
+## 🛰️ ARCHITECTURE MAPPING
+
+```text
+root/
+├── app/        # Protocol Endpoints & Routing
+├── components/ # Visualization Modules & UI Shell
+├── lib/        # Logic: Graph synthesis & Dependency Parsing
+├── store/      # Centralized Telemetry Management
+└── types/      # Strict Schema Definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## LICENSE
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License.

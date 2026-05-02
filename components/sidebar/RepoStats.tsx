@@ -49,9 +49,9 @@ export default function RepoStats() {
   if (!metadata) return null;
 
   return (
-    <div className="flex flex-col gap-10 p-8 overflow-y-auto h-full scrollbar-thin bg-black/40 backdrop-blur-md">
+    <div className="flex flex-col gap-8 p-6 overflow-y-auto h-full scrollbar-thin bg-black/40 backdrop-blur-md">
       {/* Premium Identity Section */}
-      <div className="space-y-8 pt-4 px-2">
+      <div className="space-y-6 pt-2 px-1">
         <div className="flex items-center gap-6">
           <div className="relative">
             <div className="absolute -inset-2 border border-white/5 animate-pulse" />
@@ -100,7 +100,7 @@ export default function RepoStats() {
             <span className="text-[9px] font-mono text-white/10">{langData.length} Types</span>
           </div>
 
-          <div className="h-56 w-full relative group">
+          <div className="h-48 w-full relative group">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <div className="text-center">
                 <span className="text-[9px] font-black text-white/10 block uppercase tracking-[0.4em] mb-1">Codebase</span>
@@ -239,7 +239,7 @@ function MetricItem({
   value: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 p-8 bg-black group hover:bg-white/[0.01] transition-all relative overflow-hidden">
+    <div className="flex flex-col gap-3 p-5 bg-black group hover:bg-white/[0.01] transition-all relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-[1px] bg-white/0 group-hover:bg-white/10 transition-all" />
       <span className="text-[9px] font-black tracking-[0.4em] text-white/40 uppercase group-hover:text-white/60 transition-colors">{label}</span>
       <div className="text-2xl font-light text-white tabular-nums tracking-widest leading-none group-hover:scale-105 transition-transform origin-left">{value}</div>

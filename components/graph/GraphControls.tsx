@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRepoStore } from '@/store/repoStore';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 /**
  * GraphControls — Filter panel for the graph canvas.
@@ -11,6 +12,9 @@ export default function GraphControls() {
   const filters = useRepoStore((s) => s.filters);
   const setFilters = useRepoStore((s) => s.setFilters);
   const nodes = useRepoStore((s) => s.nodes);
+  const viewMode = useRepoStore((s) => s.viewMode);
+  const setViewMode = useRepoStore((s) => s.setViewMode);
+  const [isMinimized, setIsMinimized] = React.useState(false);
 
   const fileCount = nodes.filter((n) => n.type === 'file').length;
   const folderCount = nodes.filter((n) => n.type === 'folder').length;
@@ -30,11 +34,24 @@ export default function GraphControls() {
       animate={{ opacity: 1, x: 0 }}
       className="absolute top-24 left-10 z-20 w-72 bg-black/80 backdrop-blur-3xl border border-white/[0.05] shadow-2xl overflow-hidden"
     >
-      <div className="px-6 py-4 border-b border-white/[0.05]">
+      <div className="px-6 py-4 border-b border-white/[0.05] flex items-center justify-between cursor-pointer select-none" onClick={() => setIsMinimized(!isMinimized)}>
         <span className="text-[11px] font-black tracking-[0.4em] text-white/20 uppercase">Control_Panel</span>
+        <button 
+          className="text-white/20 hover:text-white transition-colors"
+        >
+          {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
       </div>
 
-      <div className="p-6 space-y-6">
+      <AnimatePresence>
+        {!isMinimized && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="p-6 space-y-6">
         {/* Core Metrics Grid */}
         <div className="grid grid-cols-2 gap-px bg-white/10 border border-white/10">
           <div className="px-4 py-3 bg-black">
@@ -44,6 +61,29 @@ export default function GraphControls() {
           <div className="px-4 py-3 bg-black text-right">
             <span className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase block mb-1">Layers</span>
             <span className="text-xl font-mono text-white/60">{folderCount}</span>
+          </div>
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="space-y-3">
+          <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase block">Layout Engine</span>
+          <div className="flex bg-white/5 border border-white/10 p-1">
+            <button
+              onClick={() => setViewMode('tree')}
+              className={`flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
+                viewMode === 'tree' ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+              }`}
+            >
+              Tree Structure
+            </button>
+            <button
+              onClick={() => setViewMode('constellation')}
+              className={`flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
+                viewMode === 'constellation' ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+              }`}
+            >
+              Constellation
+            </button>
           </div>
         </div>
 
@@ -60,17 +100,20 @@ export default function GraphControls() {
             active={filters.showFolders}
             onChange={() => setFilters({ showFolders: !filters.showFolders })}
           />
-          <ToggleRow
-            label="Dependencies"
-            active={filters.showExternalDeps}
-            onChange={() => setFilters({ showExternalDeps: !filters.showExternalDeps })}
-          />
+          {viewMode === 'constellation' && (
+            <ToggleRow
+              label="Dependencies"
+              active={filters.showExternalDeps}
+              onChange={() => setFilters({ showExternalDeps: !filters.showExternalDeps })}
+            />
+          )}
         </div>
 
-        {/* Depth Slider */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase">Depth</span>
+            <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase">
+              {viewMode === 'tree' ? 'Expansion Depth' : 'Depth'}
+            </span>
             <span className="text-[10px] font-mono text-white/60">{filters.maxDepth}</span>
           </div>
           <input
@@ -115,7 +158,10 @@ export default function GraphControls() {
             </div>
           </div>
         )}
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -132,7 +178,7 @@ function ToggleRow({
   return (
     <button
       onClick={onChange}
-      className="w-full flex items-center justify-between py-4 border-b border-white/[0.03] group text-left"
+      className="w-full flex items-center justify-between py-3 border-b border-white/[0.03] group text-left"
     >
       <span className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all ${active ? 'text-white' : 'text-white/20 group-hover:text-white/40'}`}>
         {label}

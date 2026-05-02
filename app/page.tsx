@@ -51,7 +51,7 @@ export default function HomePage() {
         >
           <div className="flex items-center gap-4 md:gap-12">
             <motion.a
-              href="https://github.com/swadesh-c0de"
+              href="https://github.com/swadesh-c0de/gitnode"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}

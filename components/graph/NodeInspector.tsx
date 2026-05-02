@@ -40,10 +40,10 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
       }}
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute bottom-12 right-0 w-80 z-50 pointer-events-auto"
+      className="absolute bottom-12 right-0 w-72 z-50 pointer-events-auto"
     >
-      <div className="bg-black/80 backdrop-blur-3xl border border-white/[0.05] p-8 shadow-2xl relative">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-black/80 backdrop-blur-3xl border border-white/[0.05] p-6 shadow-2xl relative">
+        <div className="flex items-center justify-between mb-5">
           <span className="text-[9px] font-black tracking-[0.8em] text-white/20 uppercase">Identity</span>
           <button 
             onClick={() => selectNode(null)} 
@@ -53,16 +53,16 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
           </button>
         </div>
 
-        <h3 className="text-base font-black tracking-widest text-white uppercase mb-8 truncate">
+        <h3 className="text-sm font-black tracking-widest text-white uppercase mb-5 truncate">
           {label}
         </h3>
 
-        <div className="grid grid-cols-2 gap-px bg-white/10 border border-white/10 mb-8">
-          <div className="p-4 bg-black/40">
+        <div className="grid grid-cols-2 gap-px bg-white/10 border border-white/10 mb-5">
+          <div className="p-3 bg-black/40">
             <span className="text-[9px] font-black tracking-[0.4em] text-white/20 uppercase block mb-1">Type</span>
             <span className="text-[11px] font-mono text-white/60">{type.toUpperCase()}</span>
           </div>
-          <div className="p-4 bg-black/40">
+          <div className="p-3 bg-black/40">
             <span className="text-[9px] font-black tracking-[0.4em] text-white/20 uppercase block mb-1">Synapses</span>
             <div className="text-[11px] font-mono text-white/60">
                 <SlotCounter value={synapses} />

@@ -44,6 +44,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
   const parallaxTarget = useRef({ x: 0, y: 0 });
   const parallaxCurrent = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number>(0);
+  const dragNodeRef = useRef<SimNode | null>(null);
 
   // Sync selectedRef
   useEffect(() => {
@@ -120,12 +121,23 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     // ── Force simulation ──
     const sim = d3.forceSimulation<SimNode>(simNodes)
       .force("link", d3.forceLink<SimNode, SimLink>(simLinks)
-        .id(d => d.id).distance(150).strength(0.1))
-      .force("charge", d3.forceManyBody<SimNode>().strength(-300).distanceMax(800))
-      .force("center", d3.forceCenter(width / 2, height / 2))
+        .id(d => d.id)
+        .distance(150)
+        .strength(link => {
+          const dNode = dragNodeRef.current;
+          // When dragging, give neighbors a much stronger "spring" pull
+          if (dNode && (link.source.id === dNode.id || link.target.id === dNode.id)) {
+            return 0.8; 
+          }
+          return 0.15;
+        }))
+      .force("charge", d3.forceManyBody<SimNode>().strength(-400).distanceMax(1000))
+      // Replace forceCenter with gentle X/Y pulls to keep the graph stable during drags
+      .force("x", d3.forceX(width / 2).strength(0.05))
+      .force("y", d3.forceY(height / 2).strength(0.05))
       .force("collision", d3.forceCollide<SimNode>().radius(d => nodeR(d) + 30).strength(0.8))
       .alphaDecay(0.015)
-      .velocityDecay(0.4);
+      .velocityDecay(0.35);
 
     simRef.current = sim;
 
@@ -146,7 +158,8 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
 
       const hovered = hoveredRef.current;
       const selectedId = selectedRef.current;
-      const activeId = selectedId ?? hovered?.id ?? null;
+      const dragNode = dragNodeRef.current;
+      const activeId = dragNode?.id ?? selectedId ?? hovered?.id ?? null;
       const neighbors = activeId ? (adjacencyRef.current.get(activeId) ?? new Set<string>()) : new Set<string>();
 
       const rawMx = (parallaxTarget.current.x / -0.05) + width / 2;
@@ -170,21 +183,22 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         if (isHighlit) {
           ctx.globalAlpha = 1;
           const grad = ctx.createLinearGradient(sx, sy, tx, ty);
-          grad.addColorStop(0, "rgba(255,255,255,0.02)");
-          grad.addColorStop(0.5, "rgba(255,255,255,0.25)");
-          grad.addColorStop(1, "rgba(255,255,255,0.02)");
+          grad.addColorStop(0, "rgba(255,255,255,0.15)");
+          grad.addColorStop(0.5, "rgba(255,255,255,0.8)");
+          grad.addColorStop(1, "rgba(255,255,255,0.15)");
           ctx.strokeStyle = grad;
-          ctx.lineWidth = 1.2;
+          ctx.lineWidth = 1.8;
         } else {
-          ctx.globalAlpha = activeId ? 0.002 : 0.015;
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 0.4;
+          // Increased base visibility
+          ctx.globalAlpha = activeId ? 0.04 : 0.15;
+          ctx.strokeStyle = "rgba(255,255,255,0.6)";
+          ctx.lineWidth = 0.8;
         }
         ctx.stroke();
         ctx.restore();
 
-        // Ethereal Particle effect
-        if (isHighlit || (!activeId && Math.random() < 0.003)) {
+        // Ethereal Particle effect — Increased frequency and visibility
+        if (isHighlit || (!activeId && Math.random() < 0.01)) {
             const time = Date.now();
             const speed = isHighlit ? 0.001 : 0.0003;
             const progress = (time * speed + (link.source.id.charCodeAt(0) * 0.2)) % 1;
@@ -192,12 +206,12 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
             const py = sy + (ty - sy) * progress;
             
             ctx.save();
-            ctx.globalAlpha = isHighlit ? 0.8 : 0.15;
+            ctx.globalAlpha = isHighlit ? 1.0 : 0.4;
             ctx.fillStyle = "#ffffff";
-            ctx.shadowBlur = isHighlit ? 8 : 0;
+            ctx.shadowBlur = isHighlit ? 12 : 4;
             ctx.shadowColor = "white";
             ctx.beginPath();
-            ctx.arc(px, py, isHighlit ? 1 : 0.6, 0, Math.PI * 2);
+            ctx.arc(px, py, isHighlit ? 1.4 : 0.8, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
@@ -215,13 +229,13 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         const isNeighbor = !!activeId && neighbors.has(node.id);
 
         ctx.save();
-        ctx.globalAlpha = activeId ? (isActive ? 1 : isNeighbor ? 0.6 : 0.02) : 0.6;
+        ctx.globalAlpha = activeId ? (isActive ? 1 : isNeighbor ? 0.7 : 0.08) : 0.7;
 
         // Zen glow for active nodes
         if (isActive) {
           const glowR = r * 6;
           const glow = ctx.createRadialGradient(x, y, r, x, y, glowR);
-          glow.addColorStop(0, "rgba(255,255,255,0.12)");
+          glow.addColorStop(0, "rgba(255,255,255,0.15)");
           glow.addColorStop(1, "rgba(255,255,255,0)");
           ctx.fillStyle = glow;
           ctx.beginPath();
@@ -233,7 +247,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         
-        const brightness = Math.min(100, 50 + node.connections * 3);
+        const brightness = Math.min(100, 60 + node.connections * 3);
         ctx.fillStyle = isSelected ? "#ffffff" : isHovered ? "#ffffff" : `rgba(255,255,255,${brightness/100})`;
         ctx.fill();
 
@@ -258,7 +272,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
                 ctx.fillStyle = "black";
                 ctx.fillText(labelText, x, labelY);
             } else {
-                ctx.fillStyle = "rgba(255,255,255,0.5)";
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
                 ctx.fillText(node.label.toUpperCase(), x, labelY);
             }
         }
@@ -337,9 +351,9 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     function onMouseDown(e: MouseEvent) {
       const n = hitTest(e);
       if (!n) return;
-      dragNode = n;
+      dragNodeRef.current = n;
       n.fx = n.x; n.fy = n.y;
-      sim.alphaTarget(0.3).restart();
+      sim.alphaTarget(0.7).restart(); // High alpha for instant response
     }
 
     function onMouseMove(e: MouseEvent) {
@@ -348,10 +362,10 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       const my = e.clientY - rect.top;
       parallaxTarget.current = { x: (mx - width / 2) * -0.02, y: (my - height / 2) * -0.02 };
 
-      if (dragNode) {
+      if (dragNodeRef.current) {
         const t = transformRef.current;
-        dragNode.fx = (mx - t.x - parallaxCurrent.current.x) / t.k;
-        dragNode.fy = (my - t.y - parallaxCurrent.current.y) / t.k;
+        dragNodeRef.current.fx = (mx - t.x - parallaxCurrent.current.x) / t.k;
+        dragNodeRef.current.fy = (my - t.y - parallaxCurrent.current.y) / t.k;
         return;
       }
       hoveredRef.current = hitTest(e);
@@ -359,9 +373,10 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     }
 
     function onMouseUp() {
-      if (dragNode) {
-        dragNode.fx = null; dragNode.fy = null;
-        dragNode = null;
+      if (dragNodeRef.current) {
+        dragNodeRef.current.fx = null;
+        dragNodeRef.current.fy = null;
+        dragNodeRef.current = null;
         sim.alphaTarget(0);
       }
     }
