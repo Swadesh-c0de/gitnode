@@ -94,7 +94,6 @@ export function buildGraph(
       edges.push({
         id: `i-${imp.source}-${targetId}`, source: imp.source, target: targetId,
         type: 'animated',
-        style: { strokeWidth: 1.5 },
         data: { edgeType: imp.type },
       });
     }

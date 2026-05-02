@@ -14,7 +14,7 @@ export interface ConstellationGraphProps {
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
   label: string;
-  type: string;
+  type?: string;
   color: string;
   glowColor: string;
   connections: number;

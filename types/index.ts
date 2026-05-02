@@ -3,7 +3,22 @@
  * All shared types for the application.
  */
 
-import type { Node, Edge } from '@xyflow/react';
+/** Base Node interface for graph visualization */
+export interface Node<T = any, U = string> {
+  id: string;
+  type?: U;
+  data: T;
+  position?: { x: number; y: number };
+}
+
+/** Base Edge interface for graph visualization */
+export interface Edge<T = any> {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+  data?: T;
+}
 
 // ─── GitHub API Types ────────────────────────────────────────────────────────
 
@@ -80,25 +95,27 @@ export type ParseableLanguage =
 
 // ─── Graph Types ─────────────────────────────────────────────────────────────
 
-/** Data attached to a file node in the React Flow graph */
-export interface FileNodeData {
+/** Shared base data for all graph nodes */
+export interface BaseNodeData {
   label: string;
   filePath: string;
+  type: 'file' | 'folder';
+  [key: string]: unknown;
+}
+
+/** Data attached to a file node in the graph */
+export interface FileNodeData extends BaseNodeData {
   extension: string;
   size?: number;
   type: 'file';
   color: string;
   glowColor: string;
-  [key: string]: unknown;
 }
 
-/** Data attached to a folder node in the React Flow graph */
-export interface FolderNodeData {
-  label: string;
-  filePath: string;
+/** Data attached to a folder node in the graph */
+export interface FolderNodeData extends BaseNodeData {
   type: 'folder';
   fileCount: number;
-  [key: string]: unknown;
 }
 
 /** A React Flow node for a file */
