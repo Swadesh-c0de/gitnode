@@ -51,6 +51,20 @@ const TECH_MAP: Record<string, Omit<TechStackItem, 'version'>> = {
   eslint: { name: 'ESLint', icon: '📏', category: 'tool' },
   prettier: { name: 'Prettier', icon: '✨', category: 'tool' },
   docker: { name: 'Docker', icon: '🐳', category: 'devops' },
+  'framer-motion': { name: 'Framer Motion', icon: '🎭', category: 'frontend' },
+  radix: { name: 'Radix UI', icon: '🫐', category: 'frontend' },
+  '@radix-ui/react-primitive': { name: 'Radix UI', icon: '🫐', category: 'frontend' },
+  'shadcn-ui': { name: 'Shadcn UI', icon: '🎨', category: 'frontend' },
+  remix: { name: 'Remix', icon: '💿', category: 'frontend' },
+  '@remix-run/react': { name: 'Remix', icon: '💿', category: 'frontend' },
+  astro: { name: 'Astro', icon: '🚀', category: 'frontend' },
+  trpc: { name: 'tRPC', icon: '🪄', category: 'backend' },
+  '@trpc/server': { name: 'tRPC', icon: '🪄', category: 'backend' },
+  bun: { name: 'Bun', icon: '🥟', category: 'tool' },
+  deno: { name: 'Deno', icon: '🦕', category: 'tool' },
+  zustand: { name: 'Zustand', icon: '🐻', category: 'tool' },
+  redux: { name: 'Redux', icon: '⚛️', category: 'tool' },
+  '@tanstack/react-query': { name: 'React Query', icon: '📡', category: 'tool' },
 };
 
 /**

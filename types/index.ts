@@ -156,6 +156,7 @@ export interface RepoState {
 
   // UI State
   viewMode: 'constellation' | 'tree';
+  viewModeTransitioning: boolean;
   selectedNode: GraphNode | null;
   selectedFilePath: string | null;
   fileContent: string | null;

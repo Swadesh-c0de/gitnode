@@ -25,11 +25,6 @@ function flattenTree(
   return result;
 }
 
-function countFiles(node: FileTreeNode): number {
-  if (node.type === 'file') return 1;
-  return node.children?.reduce((s, c) => s + countFiles(c), 0) ?? 0;
-}
-
 // Layout is now handled by d3-force physics in hooks/useForceLayout.ts
 
 function resolveImportTarget(importPath: string, sourcePath: string, nodeIds: Set<string>): string | null {
@@ -108,15 +103,3 @@ export function buildGraph(
   return { nodes, edges };
 }
 
-/** Get summary statistics about the built graph */
-export function getGraphStats(nodes: GraphNode[], edges: GraphEdge[]) {
-  const fileNodes = nodes.filter((n) => n.type === 'file');
-  const folderNodes = nodes.filter((n) => n.type === 'folder');
-  const importEdges = edges.filter((e) => e.id.startsWith('i-'));
-  const extCounts: Record<string, number> = {};
-  for (const n of fileNodes) {
-    const ext = (n.data as { extension?: string }).extension || 'other';
-    extCounts[ext] = (extCounts[ext] || 0) + 1;
-  }
-  return { totalFiles: fileNodes.length, totalFolders: folderNodes.length, totalEdges: importEdges.length, extensionCounts: extCounts };
-}

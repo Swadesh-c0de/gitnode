@@ -15,6 +15,13 @@ export default function GraphControls() {
   const viewMode = useRepoStore((s) => s.viewMode);
   const setViewMode = useRepoStore((s) => s.setViewMode);
   const [isMinimized, setIsMinimized] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const mobile = window.innerWidth < 1024;
+    setIsMobile(mobile);
+    if (mobile) setIsMinimized(true);
+  }, []);
 
   const fileCount = nodes.filter((n) => n.type === 'file').length;
   const folderCount = nodes.filter((n) => n.type === 'folder').length;
@@ -32,7 +39,9 @@ export default function GraphControls() {
     <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="absolute top-24 left-10 z-20 w-72 bg-black/80 backdrop-blur-3xl border border-white/[0.05] shadow-2xl overflow-hidden"
+      className={`absolute z-20 bg-black/80 backdrop-blur-3xl border border-white/[0.05] shadow-2xl overflow-hidden transition-all duration-500
+        ${isMobile ? 'top-20 left-4 w-64' : 'top-24 left-10 w-72'}
+      `}
     >
       <div className="px-6 py-4 border-b border-white/[0.05] flex items-center justify-between cursor-pointer select-none" onClick={() => setIsMinimized(!isMinimized)}>
         <span className="text-[11px] font-black tracking-[0.4em] text-white/20 uppercase">Control_Panel</span>

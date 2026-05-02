@@ -333,7 +333,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
 
     d3.select(canvas).call(zoom);
 
-    function hitTest(e: MouseEvent): SimNode | null {
+    function hitTest(e: PointerEvent): SimNode | null {
       const rect = canvas!.getBoundingClientRect();
       const t = transformRef.current;
       const mx = (e.clientX - rect.left - t.x - parallaxCurrent.current.x) / t.k;
@@ -348,7 +348,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
 
     let dragNode: SimNode | null = null;
 
-    function onMouseDown(e: MouseEvent) {
+    function onPointerDown(e: PointerEvent) {
       const n = hitTest(e);
       if (!n) return;
       dragNodeRef.current = n;
@@ -356,7 +356,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       sim.alphaTarget(0.7).restart(); // High alpha for instant response
     }
 
-    function onMouseMove(e: MouseEvent) {
+    function onPointerMove(e: PointerEvent) {
       const rect = canvas!.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -372,7 +372,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       canvas!.style.cursor = hoveredRef.current ? "pointer" : "crosshair";
     }
 
-    function onMouseUp() {
+    function onPointerUp() {
       if (dragNodeRef.current) {
         dragNodeRef.current.fx = null;
         dragNodeRef.current.fy = null;
@@ -381,27 +381,27 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       }
     }
 
-    function onClick(e: MouseEvent) {
+    function onPointerClick(e: PointerEvent) {
       const n = hitTest(e);
       onNodeClick(n ? n.originalNode : null);
     }
 
-    canvas.addEventListener("mousedown", onMouseDown);
-    canvas.addEventListener("mousemove", onMouseMove);
-    canvas.addEventListener("mouseup", onMouseUp);
-    canvas.addEventListener("mouseleave", onMouseUp);
-    canvas.addEventListener("click", onClick);
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointerleave", onPointerUp);
+    canvas.addEventListener("click", onPointerClick as any);
 
     return () => {
       running = false;
       cancelAnimationFrame(rafRef.current);
       sim.stop();
       ro.disconnect();
-      canvas.removeEventListener("mousedown", onMouseDown);
-      canvas.removeEventListener("mousemove", onMouseMove);
-      canvas.removeEventListener("mouseup", onMouseUp);
-      canvas.removeEventListener("mouseleave", onMouseUp);
-      canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointerleave", onPointerUp);
+      canvas.removeEventListener("click", onPointerClick as any);
     };
   }, [simNodes, simLinks, adjacency]);
 

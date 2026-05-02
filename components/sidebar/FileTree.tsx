@@ -21,6 +21,7 @@ export default function FileTree() {
   const selectNode = useRepoStore((s) => s.selectNode);
   const nodes = useRepoStore((s) => s.nodes);
   const selectedFilePath = useRepoStore((s) => s.selectedFilePath);
+  const isLoading = useRepoStore((s) => s.isLoading);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -97,7 +98,7 @@ export default function FileTree() {
             onClick={handleFileClick}
           />
         ))}
-        {flatNodes.length === 0 && (
+        {flatNodes.length === 0 && !isLoading && (
           <div className="px-8 py-20 text-center space-y-4">
             <div className="w-10 h-10 border border-white/5 mx-auto flex items-center justify-center opacity-20">
               <Search className="w-4 h-4" />

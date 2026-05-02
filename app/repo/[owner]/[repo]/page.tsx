@@ -10,7 +10,6 @@ import RepoGraph from '@/components/graph/RepoGraph';
 import FileTree from '@/components/sidebar/FileTree';
 import FilePreview from '@/components/sidebar/FilePreview';
 import RepoStats from '@/components/sidebar/RepoStats';
-import LoadingState from '@/components/ui/LoadingState';
 import ErrorDisplay from '@/components/ui/ErrorBoundary';
 import { useRepoStore } from '@/store/repoStore';
 import { detectTechStack } from '@/lib/detectStack';
@@ -38,6 +37,22 @@ export default function RepoPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(360);
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarWidth(window.innerWidth);
+      } else {
+        setSidebarWidth(360);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const startResizing = useCallback(() => {
     setIsResizing(true);
@@ -148,13 +163,6 @@ export default function RepoPage() {
     loadRepo();
   }, [loadRepo]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center overflow-hidden">
-        <LoadingState message={useRepoStore.getState().loadingMessage} />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -173,11 +181,20 @@ export default function RepoPage() {
   return (
     <main className="relative w-screen h-screen bg-black text-white overflow-hidden selection:bg-white selection:text-black font-sans">
 
-      {/* Background Depth & Architectural Grid */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02)_0%,transparent_80%)] pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)', backgroundSize: '60px 60px' }}
-      />
+      
+      {/* Global Loading Progress Bar */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            initial={{ scaleX: 0, originX: 0 }}
+            animate={{ scaleX: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5, ease: "circOut" }}
+            className="absolute top-0 inset-x-0 h-[1px] bg-white z-[100] shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+          />
+        )}
+      </AnimatePresence>
 
       {/* Main Graph Canvas */}
       <div className="absolute inset-0 z-0">
@@ -198,6 +215,24 @@ export default function RepoPage() {
               </span>
             </div>
           </Link>
+
+          {/* Minimal Loading Pulse */}
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="flex items-center gap-3 border-l border-white/10 pl-12 h-8"
+              >
+                <div className="relative">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping absolute inset-0 opacity-40" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,1)]" />
+                </div>
+                <span className="text-[9px] font-black tracking-[0.6em] text-white/50 uppercase">Scanning_Source</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="flex items-center gap-10">
@@ -232,16 +267,18 @@ export default function RepoPage() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            style={{ width: sidebarWidth }}
-            className="absolute inset-y-0 right-0 z-40 pt-16"
+            style={{ width: isMobile ? '100%' : sidebarWidth }}
+            className={`absolute inset-y-0 right-0 z-40 pt-16 ${isMobile ? 'w-full' : ''}`}
           >
             <div className="w-full h-full bg-black/80 backdrop-blur-3xl border-l border-white/[0.05] flex flex-col relative overflow-hidden">
 
-              {/* Resize Handle */}
-              <div
-                onMouseDown={startResizing}
-                className={`absolute inset-y-0 left-0 w-1.5 cursor-ew-resize z-50 hover:bg-white/10 transition-colors ${isResizing ? 'bg-white/20' : ''}`}
-              />
+              {/* Resize Handle (Hidden on Mobile) */}
+              {!isMobile && (
+                <div
+                  onMouseDown={startResizing}
+                  className={`absolute inset-y-0 left-0 w-1.5 cursor-ew-resize z-50 hover:bg-white/10 transition-colors ${isResizing ? 'bg-white/20' : ''}`}
+                />
+              )}
 
               {/* Internal Grid Accents */}
               <div className="absolute inset-y-0 left-10 w-[1px] bg-white/[0.02] pointer-events-none" />

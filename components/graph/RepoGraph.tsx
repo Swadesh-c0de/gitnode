@@ -18,6 +18,7 @@ export default function RepoGraph({ sidebarOpen, setSidebarOpen, sidebarWidth }:
   const selectNode = useRepoStore((s) => s.selectNode);
   const selectedNode = useRepoStore((s) => s.selectedNode);
   const viewMode = useRepoStore((s) => s.viewMode);
+  const viewModeTransitioning = useRepoStore((s) => s.viewModeTransitioning);
 
   // Build graph from file tree
   const { graphNodes, graphEdges } = useMemo(() => {
@@ -79,6 +80,29 @@ export default function RepoGraph({ sidebarOpen, setSidebarOpen, sidebarWidth }:
       </div>
 
       {/* Floating Node Inspector */}
+      {/* View Mode Transition Overlay */}
+      <AnimatePresence>
+        {viewModeTransitioning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-4">
+               <div className="w-12 h-[1px] bg-white/20 relative overflow-hidden">
+                  <motion.div 
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-y-0 w-4 bg-white/60"
+                  />
+               </div>
+               <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40">Reconfiguring_Engine</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {selectedNode && <NodeInspector sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} sidebarWidth={sidebarWidth} />}
       </AnimatePresence>
