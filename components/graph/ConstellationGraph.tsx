@@ -27,7 +27,7 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   edgeType: string;
 }
 
-const nodeR = (n: SimNode) => Math.max(4, Math.min(16, 4 + Math.sqrt(n.connections) * 2.5));
+const nodeR = (n: SimNode) => Math.max(5, Math.min(18, 5 + Math.sqrt(n.connections) * 2.2));
 
 export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges, onNodeClick, selectedNodeId }: ConstellationGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,8 +63,8 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       id: n.id,
       label: n.data.label,
       type: n.type,
-      color: '#ffffff',
-      glowColor: 'rgba(255,255,255,0.1)',
+      color: (n.data as any).color || '#3b82f6',
+      glowColor: (n.data as any).glowColor || 'rgba(59,130,246,0.15)',
       connections: connCount.get(n.id) ?? 0,
       originalNode: n,
     }));
@@ -73,8 +73,8 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
 
     const sLinks: SimLink[] = repoEdges
       .filter(l => nodeMap.has(l.source) && nodeMap.has(l.target))
-      .map(l => ({ 
-        source: nodeMap.get(l.source)!, 
+      .map(l => ({
+        source: nodeMap.get(l.source)!,
         target: nodeMap.get(l.target)!,
         edgeType: l.data?.edgeType || 'local'
       }));
@@ -122,22 +122,15 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     const sim = d3.forceSimulation<SimNode>(simNodes)
       .force("link", d3.forceLink<SimNode, SimLink>(simLinks)
         .id(d => d.id)
-        .distance(150)
-        .strength(link => {
-          const dNode = dragNodeRef.current;
-          // When dragging, give neighbors a much stronger "spring" pull
-          if (dNode && (link.source.id === dNode.id || link.target.id === dNode.id)) {
-            return 0.8; 
-          }
-          return 0.15;
-        }))
-      .force("charge", d3.forceManyBody<SimNode>().strength(-400).distanceMax(1000))
-      // Replace forceCenter with gentle X/Y pulls to keep the graph stable during drags
-      .force("x", d3.forceX(width / 2).strength(0.05))
-      .force("y", d3.forceY(height / 2).strength(0.05))
-      .force("collision", d3.forceCollide<SimNode>().radius(d => nodeR(d) + 30).strength(0.8))
-      .alphaDecay(0.015)
-      .velocityDecay(0.35);
+        .distance(110)
+        .strength(0.35))
+      .force("charge", d3.forceManyBody<SimNode>().strength(-200).distanceMax(900))
+      // Stable anchor forces pulling back to viewport center
+      .force("x", d3.forceX(width / 2).strength(0.06))
+      .force("y", d3.forceY(height / 2).strength(0.06))
+      .force("collision", d3.forceCollide<SimNode>().radius(d => nodeR(d) + 16).strength(0.75))
+      .alphaDecay(0.012)
+      .velocityDecay(0.36);
 
     simRef.current = sim;
 
@@ -146,7 +139,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     function draw() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      
+
       ctx.save();
 
       parallaxCurrent.current.x += (parallaxTarget.current.x - parallaxCurrent.current.x) * 0.05;
@@ -162,65 +155,65 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       const activeId = dragNode?.id ?? selectedId ?? hovered?.id ?? null;
       const neighbors = activeId ? (adjacencyRef.current.get(activeId) ?? new Set<string>()) : new Set<string>();
 
-      const rawMx = (parallaxTarget.current.x / -0.05) + width / 2;
-      const rawMy = (parallaxTarget.current.y / -0.05) + height / 2;
-      const mx = (rawMx - t.x - parallaxCurrent.current.x) / t.k;
-      const my = (rawMy - t.y - parallaxCurrent.current.y) / t.k;
-
       // Draw links
       linksRef.current.forEach(link => {
         const sx = link.source.x!, sy = link.source.y!;
         const tx = link.target.x!, ty = link.target.y!;
-        if (!isFinite(sx) || !isFinite(sy) || !isFinite(tx) || !isFinite(ty)) return;
-
         const isHighlit = activeId && (link.source.id === activeId || link.target.id === activeId);
+
+        // Viewport culling optimization for links to skip offscreen lines
+        const sScreenX = sx * t.k + t.x + parallaxCurrent.current.x;
+        const sScreenY = sy * t.k + t.y + parallaxCurrent.current.y;
+        const tScreenX = tx * t.k + t.x + parallaxCurrent.current.x;
+        const tScreenY = ty * t.k + t.y + parallaxCurrent.current.y;
+
+        const sxOut = sScreenX < 0 || sScreenX > width || sScreenY < 0 || sScreenY > height;
+        const txOut = tScreenX < 0 || tScreenX > width || tScreenY < 0 || tScreenY > height;
+
+        if (!isHighlit && sxOut && txOut) return;
 
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(sx, sy);
         ctx.lineTo(tx, ty);
-        
+
         if (isHighlit) {
           ctx.globalAlpha = 1;
           const grad = ctx.createLinearGradient(sx, sy, tx, ty);
-          grad.addColorStop(0, "rgba(255,255,255,0.15)");
-          grad.addColorStop(0.5, "rgba(255,255,255,0.8)");
-          grad.addColorStop(1, "rgba(255,255,255,0.15)");
+          grad.addColorStop(0, link.source.color);
+          grad.addColorStop(1, link.target.color);
           ctx.strokeStyle = grad;
-          ctx.lineWidth = 1.8;
+          ctx.lineWidth = 2.0;
         } else {
-          // Increased base visibility
-          ctx.globalAlpha = activeId ? 0.04 : 0.15;
-          ctx.strokeStyle = "rgba(255,255,255,0.6)";
+          ctx.globalAlpha = activeId ? 0.03 : 0.16;
+          ctx.strokeStyle = "rgba(255,255,255,0.2)";
           ctx.lineWidth = 0.8;
         }
         ctx.stroke();
         ctx.restore();
 
-        // Ethereal Particle effect — Increased frequency and visibility
-        if (isHighlit || (!activeId && Math.random() < 0.01)) {
-            const time = Date.now();
-            const speed = isHighlit ? 0.001 : 0.0003;
-            const progress = (time * speed + (link.source.id.charCodeAt(0) * 0.2)) % 1;
-            const px = sx + (tx - sx) * progress;
-            const py = sy + (ty - sy) * progress;
-            
-            ctx.save();
-            ctx.globalAlpha = isHighlit ? 1.0 : 0.4;
-            ctx.fillStyle = "#ffffff";
-            ctx.shadowBlur = isHighlit ? 12 : 4;
-            ctx.shadowColor = "white";
-            ctx.beginPath();
-            ctx.arc(px, py, isHighlit ? 1.4 : 0.8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
+        // Glowing Synaptic energy pulse particle along active connection
+        if (isHighlit || (!activeId && Math.random() < 0.005)) {
+          const time = Date.now();
+          const speed = isHighlit ? 0.0012 : 0.0004;
+          const progress = (time * speed + (link.source.id.charCodeAt(0) * 0.15)) % 1;
+          const px = sx + (tx - sx) * progress;
+          const py = sy + (ty - sy) * progress;
+
+          ctx.save();
+          ctx.globalAlpha = isHighlit ? 1.0 : 0.5;
+          ctx.fillStyle = isHighlit ? link.source.color : "#ffffff";
+          ctx.beginPath();
+          ctx.arc(px, py, isHighlit ? 1.6 : 0.9, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
       });
 
       // Draw nodes
       nodesRef.current.forEach(node => {
         if (!isFinite(node.x!) || !isFinite(node.y!)) return;
-        
+
         const x = node.x!, y = node.y!;
         const r = nodeR(node);
         const isHovered = hovered?.id === node.id;
@@ -228,53 +221,91 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         const isActive = isHovered || isSelected;
         const isNeighbor = !!activeId && neighbors.has(node.id);
 
-        ctx.save();
-        ctx.globalAlpha = activeId ? (isActive ? 1 : isNeighbor ? 0.7 : 0.08) : 0.7;
+        // Viewport culling optimization for nodes to skip offscreen files
+        const screenX = x * t.k + t.x + parallaxCurrent.current.x;
+        const screenY = y * t.k + t.y + parallaxCurrent.current.y;
+        const pad = (isActive ? r * 5 : r) * t.k;
 
-        // Zen glow for active nodes
+        if (
+          !isActive &&
+          (screenX + pad < 0 ||
+            screenX - pad > width ||
+            screenY + pad < 0 ||
+            screenY - pad > height)
+        ) {
+          return;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = activeId ? (isActive ? 1 : isNeighbor ? 0.85 : 0.07) : 0.8;
+
+        // Custom glow ring mapping to the node's file-type color
         if (isActive) {
-          const glowR = r * 6;
+          const glowR = r * 5;
           const glow = ctx.createRadialGradient(x, y, r, x, y, glowR);
-          glow.addColorStop(0, "rgba(255,255,255,0.15)");
-          glow.addColorStop(1, "rgba(255,255,255,0)");
+          glow.addColorStop(0, `${node.color}35`);
+          glow.addColorStop(1, "rgba(0,0,0,0)");
           ctx.fillStyle = glow;
           ctx.beginPath();
           ctx.arc(x, y, glowR, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Minimal node core
+        // Sleek color node core
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        
-        const brightness = Math.min(100, 60 + node.connections * 3);
-        ctx.fillStyle = isSelected ? "#ffffff" : isHovered ? "#ffffff" : `rgba(255,255,255,${brightness/100})`;
+        ctx.fillStyle = node.color;
         ctx.fill();
 
-        // Minimal labels
-        if (isActive || (t.k > 1.2 && node.connections >= 2) || (t.k > 0.6 && node.connections >= 8)) {
-            const labelY = y + r + 16 / t.k;
-            ctx.font = `900 ${10 / t.k}px Inter, sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-            
-            if (isActive) {
-                const labelText = node.label.toUpperCase();
-                const tw = ctx.measureText(labelText).width;
-                const padH = 10 / t.k;
-                const padV = 5 / t.k;
-                
-                // Pure white label background
-                ctx.fillStyle = "white";
-                ctx.fillRect(x - tw/2 - padH, labelY - padV, tw + padH*2, (10/t.k) + padV*2);
-                
-                // Minimal label text
-                ctx.fillStyle = "black";
-                ctx.fillText(labelText, x, labelY);
-            } else {
-                ctx.fillStyle = "rgba(255,255,255,0.7)";
-                ctx.fillText(node.label.toUpperCase(), x, labelY);
-            }
+        // Selected/Hover border ring
+        if (isSelected) {
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2.0;
+          ctx.stroke();
+        } else if (isHovered) {
+          ctx.strokeStyle = "rgba(255,255,255,0.75)";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        // Clean monospace label - always visible
+        const fontSize = Math.max(7, Math.min(13, 9 / t.k));
+        const labelY = y + r + Math.max(6, 10 / t.k);
+        ctx.font = `500 ${fontSize}px Inter, Monaco, monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+
+        if (isActive) {
+          const labelText = node.label;
+          const tw = ctx.measureText(labelText).width;
+          const padH = 6 / t.k;
+          const padV = 3 / t.k;
+
+          // Slate dark simple tooltip background
+          ctx.fillStyle = "rgba(9, 9, 11, 0.95)";
+          ctx.strokeStyle = "rgba(255,255,255,0.12)";
+          ctx.lineWidth = 1 / t.k;
+
+          const rx = x - tw / 2 - padH;
+          const ry = labelY - padV;
+          const rw = tw + padH * 2;
+          const rh = (10 / t.k) + padV * 2;
+
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(rx, ry, rw, rh, 4 / t.k);
+          } else {
+            ctx.rect(rx, ry, rw, rh);
+          }
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(labelText, x, labelY);
+        } else {
+          // Highly readable soft grey text for standard nodes
+          ctx.fillStyle = "rgba(161, 161, 170, 0.85)"; // text-zinc-400
+          ctx.fillText(node.label, x, labelY);
         }
 
         ctx.restore();
@@ -289,7 +320,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       const mCtx = minimap.getContext("2d")!;
       const mW = minimap.width, mH = minimap.height;
       mCtx.clearRect(0, 0, mW, mH);
-      mCtx.fillStyle = "rgba(0,0,0,0.9)";
+      mCtx.fillStyle = "rgba(0,0,0,0.92)";
       mCtx.fillRect(0, 0, mW, mH);
 
       const ns = nodesRef.current;
@@ -301,11 +332,11 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       const ox = (mW - (maxX - minX) * sc) / 2;
       const oy = (mH - (maxY - minY) * sc) / 2;
 
-      mCtx.fillStyle = "#ffffff";
-      mCtx.globalAlpha = 0.3;
+      mCtx.globalAlpha = 0.45;
       ns.forEach(n => {
+        mCtx.fillStyle = n.color;
         mCtx.beginPath();
-        mCtx.arc((n.x! - minX) * sc + ox, (n.y! - minY) * sc + oy, 0.8, 0, Math.PI * 2);
+        mCtx.arc((n.x! - minX) * sc + ox, (n.y! - minY) * sc + oy, 0.9, 0, Math.PI * 2);
         mCtx.fill();
       });
 
@@ -314,7 +345,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       const vpY = (-t.y / t.k - minY) * sc + oy;
       const vpW = (width / t.k) * sc;
       const vpH = (height / t.k) * sc;
-      mCtx.strokeStyle = "rgba(255,255,255,0.2)";
+      mCtx.strokeStyle = "rgba(255,255,255,0.15)";
       mCtx.lineWidth = 0.5;
       mCtx.strokeRect(vpX, vpY, vpW, vpH);
     }
@@ -327,45 +358,72 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     }
     rafRef.current = requestAnimationFrame(loop);
 
-    const zoom = d3.zoom<HTMLCanvasElement, unknown>()
-      .scaleExtent([0.05, 10])
-      .on("zoom", e => { transformRef.current = e.transform; });
-
-    d3.select(canvas).call(zoom);
-
-    function hitTest(e: PointerEvent): SimNode | null {
-      const rect = canvas!.getBoundingClientRect();
+    function hitTest(e: any): SimNode | null {
+      if (!canvas) return null;
+      const rect = canvas.getBoundingClientRect();
       const t = transformRef.current;
-      const mx = (e.clientX - rect.left - t.x - parallaxCurrent.current.x) / t.k;
-      const my = (e.clientY - rect.top - t.y - parallaxCurrent.current.y) / t.k;
+      const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
+      const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY);
+
+      const mx = (clientX - rect.left - t.x - parallaxCurrent.current.x) / t.k;
+      const my = (clientY - rect.top - t.y - parallaxCurrent.current.y) / t.k;
       for (let i = nodesRef.current.length - 1; i >= 0; i--) {
         const n = nodesRef.current[i];
-        const r = nodeR(n) + 16 / t.k;
+        const r = nodeR(n) + 12 / t.k;
         if ((mx - n.x!) ** 2 + (my - n.y!) ** 2 < r * r) return n;
       }
       return null;
     }
 
-    let dragNode: SimNode | null = null;
+    const zoom = d3.zoom<HTMLCanvasElement, unknown>()
+      .scaleExtent([0.05, 10])
+      .filter((e) => {
+        // Stop D3 Zoom from dragging the viewport if we are grabbing a node
+        if (e.type === "mousedown" || e.type === "touchstart" || e.type === "pointerdown") {
+          const hit = hitTest(e);
+          return !hit;
+        }
+        return !e.button;
+      })
+      .on("zoom", e => { transformRef.current = e.transform; });
+
+    d3.select(canvas).call(zoom);
+
+    let hasDragged = false;
+    let startX = 0;
+    let startY = 0;
 
     function onPointerDown(e: PointerEvent) {
       const n = hitTest(e);
       if (!n) return;
       dragNodeRef.current = n;
       n.fx = n.x; n.fy = n.y;
-      sim.alphaTarget(0.7).restart(); // High alpha for instant response
+      startX = e.clientX;
+      startY = e.clientY;
+      hasDragged = false;
+      sim.alphaTarget(0.3).restart(); // High alpha keeps physics active
     }
 
     function onPointerMove(e: PointerEvent) {
       const rect = canvas!.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
-      parallaxTarget.current = { x: (mx - width / 2) * -0.02, y: (my - height / 2) * -0.02 };
+
+      // Update mouse position for dynamic parallax shifts
+      parallaxTarget.current = { x: (mx - width / 2) * -0.015, y: (my - height / 2) * -0.015 };
 
       if (dragNodeRef.current) {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (dx * dx + dy * dy > 16) { // 4px distance threshold
+          hasDragged = true;
+        }
         const t = transformRef.current;
         dragNodeRef.current.fx = (mx - t.x - parallaxCurrent.current.x) / t.k;
         dragNodeRef.current.fy = (my - t.y - parallaxCurrent.current.y) / t.k;
+
+        // Push small alpha changes on pointer motion to keep springs active
+        sim.alpha(0.2).restart();
         return;
       }
       hoveredRef.current = hitTest(e);
@@ -377,11 +435,12 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         dragNodeRef.current.fx = null;
         dragNodeRef.current.fy = null;
         dragNodeRef.current = null;
-        sim.alphaTarget(0);
+        sim.alphaTarget(0); // Let it cool down to relaxation
       }
     }
 
     function onPointerClick(e: PointerEvent) {
+      if (hasDragged) return; // Prevent selection changes if dragging was triggered
       const n = hitTest(e);
       onNodeClick(n ? n.originalNode : null);
     }
@@ -408,9 +467,9 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-black selection:bg-none">
       <canvas ref={canvasRef} className="w-full h-full block" />
-      
+
       {/* Cinematic Minimap */}
-      <div className="absolute bottom-8 left-8 z-20 border border-white/10 bg-black/80 backdrop-blur-xl">
+      <div className="absolute bottom-8 left-8 z-20 border border-white/10 bg-black/80 backdrop-blur-xl rounded-lg overflow-hidden">
         <canvas ref={minimapRef} width={200} height={120} className="block" />
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none border-t border-white/5" />
       </div>

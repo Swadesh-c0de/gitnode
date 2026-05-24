@@ -3,10 +3,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRepoStore } from '@/store/repoStore';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, Eye, Sliders, Layers } from 'lucide-react';
 
 /**
- * GraphControls — Filter panel for the graph canvas.
+ * GraphControls — Filter panel for the graph canvas with holographic aesthetics.
  */
 export default function GraphControls() {
   const filters = useRepoStore((s) => s.filters);
@@ -18,13 +18,15 @@ export default function GraphControls() {
   const [isMobile, setIsMobile] = React.useState(false);
 
   React.useEffect(() => {
-    const mobile = window.innerWidth < 1024;
-    setIsMobile(mobile);
-    if (mobile) setIsMinimized(true);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) setIsMinimized(true);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const fileCount = nodes.filter((n) => n.type === 'file').length;
-  const folderCount = nodes.filter((n) => n.type === 'folder').length;
 
   const extensions = Array.from(
     new Set(
@@ -37,19 +39,34 @@ export default function GraphControls() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      className={`absolute z-20 bg-black/80 backdrop-blur-3xl border border-white/[0.05] shadow-2xl overflow-hidden transition-all duration-500
-        ${isMobile ? 'top-20 left-4 w-64' : 'top-24 left-10 w-72'}
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className={`absolute z-20 bg-black/60 backdrop-blur-3xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden transition-all duration-500
+        ${isMobile 
+          ? 'top-24 left-4 right-4 w-auto' 
+          : 'top-24 left-6 w-72'
+        }
       `}
     >
-      <div className="px-6 py-4 border-b border-white/[0.05] flex items-center justify-between cursor-pointer select-none" onClick={() => setIsMinimized(!isMinimized)}>
-        <span className="text-[11px] font-black tracking-[0.4em] text-white/20 uppercase">Control_Panel</span>
-        <button 
-          className="text-white/20 hover:text-white transition-colors"
+      {/* Grid overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.003)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.003)_1px,transparent_1px)] bg-[size:15px_15px] pointer-events-none opacity-40 rounded-xl" />
+
+      {/* Header Panel */}
+      <div 
+        className="relative z-10 px-5 py-3 border-b border-white/[0.06] flex items-center justify-between cursor-pointer select-none hover:bg-white/[0.01] transition-colors" 
+        onClick={() => setIsMinimized(!isMinimized)}
+      >
+        <div className="flex items-center gap-2">
+          <Sliders className="w-3.5 h-3.5 text-white/30" />
+          <span className="text-[9px] font-black tracking-[0.4em] text-white/50 uppercase">Console_Menu</span>
+        </div>
+        <motion.button 
+          animate={{ rotate: isMinimized ? 180 : 0 }}
+          className="text-white/30 hover:text-white transition-colors w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/5"
         >
-          {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </button>
+          <ChevronUp size={12} />
+        </motion.button>
       </div>
 
       <AnimatePresence>
@@ -58,115 +75,117 @@ export default function GraphControls() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10"
           >
-            <div className="p-6 space-y-6">
-        {/* Core Metrics Grid */}
-        <div className="grid grid-cols-2 gap-px bg-white/10 border border-white/10">
-          <div className="px-4 py-3 bg-black">
-            <span className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase block mb-1">Nodes</span>
-            <span className="text-xl font-mono text-white/60">{fileCount}</span>
-          </div>
-          <div className="px-4 py-3 bg-black text-right">
-            <span className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase block mb-1">Layers</span>
-            <span className="text-xl font-mono text-white/60">{folderCount}</span>
-          </div>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="space-y-3">
-          <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase block">Layout Engine</span>
-          <div className="flex bg-white/5 border border-white/10 p-1">
-            <button
-              onClick={() => setViewMode('tree')}
-              className={`flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
-                viewMode === 'tree' ? 'bg-white text-black' : 'text-white/40 hover:text-white'
-              }`}
-            >
-              Tree Structure
-            </button>
-            <button
-              onClick={() => setViewMode('constellation')}
-              className={`flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
-                viewMode === 'constellation' ? 'bg-white text-black' : 'text-white/40 hover:text-white'
-              }`}
-            >
-              Constellation
-            </button>
-          </div>
-        </div>
-
-        {/* Visibility Toggles */}
-        <div className="space-y-1">
-          <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase block mb-3">Visibility</span>
-          <ToggleRow
-            label="Files"
-            active={filters.showFiles}
-            onChange={() => setFilters({ showFiles: !filters.showFiles })}
-          />
-          <ToggleRow
-            label="Folders"
-            active={filters.showFolders}
-            onChange={() => setFilters({ showFolders: !filters.showFolders })}
-          />
-          {viewMode === 'constellation' && (
-            <ToggleRow
-              label="Dependencies"
-              active={filters.showExternalDeps}
-              onChange={() => setFilters({ showExternalDeps: !filters.showExternalDeps })}
-            />
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase">
-              {viewMode === 'tree' ? 'Expansion Depth' : 'Depth'}
-            </span>
-            <span className="text-[10px] font-mono text-white/60">{filters.maxDepth}</span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={15}
-            value={filters.maxDepth}
-            onChange={(e) => setFilters({ maxDepth: parseInt(e.target.value) })}
-            className="w-full h-px appearance-none bg-white/10 accent-white/40 cursor-crosshair"
-          />
-        </div>
-
-        {/* Extension Matrix */}
-        {extensions.length > 0 && (
-          <div className="space-y-4">
-            <span className="text-[10px] font-black tracking-[0.3em] text-white/10 uppercase">Extensions</span>
-            <div className="flex flex-wrap gap-1.5">
-              {extensions.slice(0, 10).map((ext) => {
-                const isActive = filters.fileTypes.length === 0 || filters.fileTypes.includes(ext);
-                return (
+            <div className="p-5 space-y-5">
+              {/* Layout Engine Toggle */}
+              <div className="space-y-2">
+                <span className="text-[7.5px] font-black tracking-[0.3em] text-white/30 uppercase block">Layout Engine</span>
+                <div className="flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-lg relative overflow-hidden">
                   <button
-                    key={ext}
-                    onClick={() => {
-                      if (filters.fileTypes.length === 0) {
-                        setFilters({ fileTypes: [ext] });
-                      } else if (filters.fileTypes.includes(ext)) {
-                        const next = filters.fileTypes.filter((t) => t !== ext);
-                        setFilters({ fileTypes: next });
-                      } else {
-                        setFilters({ fileTypes: [...filters.fileTypes, ext] });
-                      }
-                    }}
-                    className={`px-2 py-1 border text-[7px] font-black uppercase tracking-[0.1em] transition-all ${isActive
-                      ? 'border-white/40 bg-white/10 text-white'
-                      : 'border-white/5 text-white/10 hover:border-white/20'
-                      }`}
+                    onClick={() => setViewMode('tree')}
+                    className={`flex-1 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] transition-all rounded-md relative z-10 ${
+                      viewMode === 'tree' ? 'text-black font-black' : 'text-white/40 hover:text-white'
+                    }`}
                   >
-                    {ext}
+                    {viewMode === 'tree' && (
+                      <motion.div layoutId="activeEngine" className="absolute inset-0 bg-white rounded-md z-[-1]" />
+                    )}
+                    Tree Layout
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                  <button
+                    onClick={() => setViewMode('constellation')}
+                    className={`flex-1 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] transition-all rounded-md relative z-10 ${
+                      viewMode === 'constellation' ? 'text-black font-black' : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {viewMode === 'constellation' && (
+                      <motion.div layoutId="activeEngine" className="absolute inset-0 bg-white rounded-md z-[-1]" />
+                    )}
+                    Constellation
+                  </button>
+                </div>
+              </div>
+
+              {/* Visibility Section */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Eye className="w-3 h-3 text-white/30" />
+                  <span className="text-[7.5px] font-black tracking-[0.3em] text-white/30 uppercase block">Filters</span>
+                </div>
+                <ToggleRow
+                  label="Files"
+                  active={filters.showFiles}
+                  onChange={() => setFilters({ showFiles: !filters.showFiles })}
+                />
+                <ToggleRow
+                  label="Folders"
+                  active={filters.showFolders}
+                  onChange={() => setFilters({ showFolders: !filters.showFolders })}
+                />
+                {viewMode === 'constellation' && (
+                  <ToggleRow
+                    label="Dependencies"
+                    active={filters.showExternalDeps}
+                    onChange={() => setFilters({ showExternalDeps: !filters.showExternalDeps })}
+                  />
+                )}
+              </div>
+
+              {/* Depth Section */}
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[7.5px] font-black tracking-[0.3em] text-white/30 uppercase">
+                    {viewMode === 'tree' ? 'Expansion Depth' : 'Depth Boundary'}
+                  </span>
+                  <span className="text-[9px] font-mono font-bold text-white/80 border border-white/5 bg-white/[0.01] px-1.5 py-0.5 rounded">{filters.maxDepth}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={15}
+                  value={filters.maxDepth}
+                  onChange={(e) => setFilters({ maxDepth: parseInt(e.target.value) })}
+                  className="w-full h-[1px] bg-white/10 appearance-none outline-none accent-white/80 cursor-pointer rounded"
+                />
+              </div>
+
+              {/* Extension Matrix */}
+              {extensions.length > 0 && (
+                <div className="space-y-3 pt-1 border-t border-white/[0.04]">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="w-3 h-3 text-white/30" />
+                    <span className="text-[7.5px] font-black tracking-[0.3em] text-white/30 uppercase">Extensions Matrix</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1 scrollbar-none">
+                    {extensions.slice(0, 15).map((ext) => {
+                      const isActive = filters.fileTypes.length === 0 || filters.fileTypes.includes(ext);
+                      return (
+                        <button
+                          key={ext}
+                          onClick={() => {
+                            if (filters.fileTypes.length === 0) {
+                              setFilters({ fileTypes: [ext] });
+                            } else if (filters.fileTypes.includes(ext)) {
+                              const next = filters.fileTypes.filter((t) => t !== ext);
+                              setFilters({ fileTypes: next });
+                            } else {
+                              setFilters({ fileTypes: [...filters.fileTypes, ext] });
+                            }
+                          }}
+                          className={`px-2 py-1 border text-[7px] font-black uppercase tracking-[0.1em] rounded transition-all ${isActive
+                            ? 'border-white/30 bg-white/10 text-white shadow-[0_0_8px_rgba(255,255,255,0.05)]'
+                            : 'border-white/5 text-white/20 hover:border-white/20 hover:text-white/40'
+                            }`}
+                        >
+                          {ext}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -187,12 +206,18 @@ function ToggleRow({
   return (
     <button
       onClick={onChange}
-      className="w-full flex items-center justify-between py-3 border-b border-white/[0.03] group text-left"
+      className="w-full flex items-center justify-between py-2.5 border-b border-white/[0.03] group text-left relative overflow-hidden"
     >
-      <span className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all ${active ? 'text-white' : 'text-white/20 group-hover:text-white/40'}`}>
+      <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-all ${active ? 'text-white' : 'text-white/20 group-hover:text-white/40'}`}>
         {label}
       </span>
-      <div className={`w-1.5 h-1.5 rounded-full transition-all ${active ? 'bg-white shadow-[0_0_10px_white]' : 'bg-white/5'}`} />
+      <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all ${
+        active 
+          ? 'border-white bg-white shadow-[0_0_6px_rgba(255,255,255,0.3)]' 
+          : 'border-white/15 bg-transparent'
+      }`}>
+        {active && <div className="w-1.5 h-1.5 rounded-sm bg-black" />}
+      </div>
     </button>
   );
 }

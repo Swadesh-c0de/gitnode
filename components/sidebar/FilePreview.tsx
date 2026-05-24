@@ -135,18 +135,18 @@ export default function FilePreview() {
       className="flex flex-col h-full bg-black/60 backdrop-blur-xl"
     >
       {/* Zen Extraction Header */}
-      <div className="flex flex-col border-b border-white/5 bg-white/[0.02]">
-        <div className="flex items-center justify-between px-6 py-6">
-            <div className="flex flex-col min-w-0 space-y-1.5">
-                <span className="text-[9px] font-black tracking-[0.5em] text-white/40 uppercase">Source_Extraction //</span>
-                <span className="text-[13px] font-black text-white truncate uppercase tracking-[0.2em]">{selectedFilePath}</span>
+      <div className="flex flex-col border-b border-white/5 bg-white/[0.02] shrink-0">
+        <div className="flex items-center justify-between px-4 py-4 md:px-6 md:py-6">
+            <div className="flex flex-col min-w-0 space-y-1">
+                <span className="text-[7.5px] md:text-[9px] font-black tracking-[0.4em] md:tracking-[0.5em] text-white/40 uppercase">Source_Extraction //</span>
+                <span className="text-[11px] md:text-[13px] font-black text-white truncate uppercase tracking-[0.15em] md:tracking-[0.2em]">{selectedFilePath}</span>
             </div>
-            <div className="flex items-center gap-4 ml-6">
+            <div className="flex items-center gap-2 md:gap-4 ml-3 md:ml-6 shrink-0">
             <motion.button
                 whileHover={{ backgroundColor: 'rgba(255,255,255,1)', color: '#000000' }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleCopy}
-                className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/30 transition-all bg-black/40"
+                className="w-8 h-8 md:w-10 md:h-10 border border-white/10 flex items-center justify-center text-white/30 transition-all bg-black/40 rounded"
                 title="Copy Code"
             >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -157,21 +157,21 @@ export default function FilePreview() {
                 href={githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 border border-white/10 flex items-center justify-center text-white/30 transition-all bg-black/40"
+                className="w-8 h-8 md:w-10 md:h-10 border border-white/10 flex items-center justify-center text-white/30 transition-all bg-black/40 rounded"
                 title="View on GitHub"
             >
                 <ExternalLink className="w-3.5 h-3.5" />
             </motion.a>
             </div>
         </div>
-        <div className="px-6 py-2 bg-white/[0.01] border-t border-white/[0.03] flex items-center gap-6">
+        <div className="px-4 py-2 md:px-6 bg-white/[0.01] border-t border-white/[0.03] flex flex-wrap items-center gap-3 md:gap-6">
             <div className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-white/40 shadow-[0_0_5px_rgba(255,255,255,0.4)]" />
-                <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">Protocol: Active</span>
+                <span className="text-[8px] md:text-[9px] font-mono text-white/40 uppercase tracking-widest">Protocol: Active</span>
             </div>
             <div className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest">Encoding: UTF-8</span>
+                <span className="text-[8px] md:text-[9px] font-mono text-white/40 uppercase tracking-widest">Encoding: UTF-8</span>
             </div>
         </div>
       </div>
@@ -182,12 +182,12 @@ export default function FilePreview() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="p-8 space-y-6"
+            className="p-5 md:p-8 space-y-4 md:space-y-6"
           >
             {[1, 0.85, 0.9, 0.6, 0.75, 0.5, 0.85].map((w, i) => (
               <div
                 key={i}
-                className="h-2 bg-white/5 animate-pulse"
+                className="h-2 bg-white/5 animate-pulse rounded"
                 style={{ width: `${w * 100}%` }}
               />
             ))}
@@ -195,9 +195,9 @@ export default function FilePreview() {
         ) : (
           <div className="flex min-h-full">
             {/* Line Numbers */}
-            <div className="py-10 px-4 text-right bg-white/[0.01] border-r border-white/5 select-none min-w-[50px]">
+            <div className="py-4 md:py-10 px-2 md:px-4 text-right bg-white/[0.01] border-r border-white/5 select-none min-w-[36px] md:min-w-[50px]">
                 {fileContent?.split('\n').map((_, i) => (
-                    <div key={i} className="text-[11px] font-mono text-white/10 leading-[2.2]">
+                    <div key={i} className="text-[9px] md:text-[11px] font-mono text-white/10 leading-[1.8] md:leading-[2.2]">
                         {(i + 1).toString().padStart(2, '0')}
                     </div>
                 ))}
@@ -208,7 +208,7 @@ export default function FilePreview() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}
-                className="flex-1 p-10 py-10 text-[12px] leading-[2.2] font-mono overflow-x-auto"
+                className="flex-1 p-4 py-4 md:p-10 text-[10px] md:text-[12px] leading-[1.8] md:leading-[2.2] font-mono overflow-x-auto"
             >
                 <code ref={codeRef} className="text-white/70 block">
                 {fileContent || ''}
@@ -219,13 +219,13 @@ export default function FilePreview() {
       </div>
       
       {/* Technical Footer */}
-      <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between bg-white/[0.01]">
-          <div className="flex items-center gap-4">
-            <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.4em]">Artifact_Checksum: 0x92AF</span>
-            <div className="w-1 h-1 bg-white/20" />
-            <span className="text-[9px] font-mono text-white/40 uppercase tracking-[0.4em]">Entropy_Stable</span>
+      <div className="px-4 py-3 md:px-6 md:py-4 border-t border-white/5 flex flex-col sm:flex-row gap-2 sm:gap-0 sm:items-center justify-between bg-white/[0.01] shrink-0">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4">
+            <span className="text-[8px] md:text-[9px] font-mono text-white/40 uppercase tracking-[0.3em] md:tracking-[0.4em]">Checksum: 0x92AF</span>
+            <div className="hidden sm:block w-1 h-1 bg-white/20" />
+            <span className="text-[8px] md:text-[9px] font-mono text-white/40 uppercase tracking-[0.3em] md:tracking-[0.4em]">Entropy_Stable</span>
           </div>
-          <span className="text-[9px] font-mono text-white/30 uppercase tracking-[0.4em]">Sync Level: 1.0</span>
+          <span className="text-[8px] md:text-[9px] font-mono text-white/30 uppercase tracking-[0.3em] md:tracking-[0.4em]">Sync Level: 1.0</span>
       </div>
     </motion.div>
   );

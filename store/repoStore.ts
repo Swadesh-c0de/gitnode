@@ -39,6 +39,8 @@ export const useRepoStore = create<RepoState>((set) => ({
   nodes: [],
   edges: [],
   importEdges: [],
+  isScaleFree: false,
+  parsedFiles: [],
 
   // UI State
   viewMode: 'tree',
@@ -70,13 +72,46 @@ export const useRepoStore = create<RepoState>((set) => ({
 
   setGraph: (nodes: GraphNode[], edges: GraphEdge[]) => set({ nodes, edges }),
 
-  selectNode: (node: GraphNode | null) =>
+  selectNode: (node: GraphNode | null) => {
     set({
       selectedNode: node,
       selectedFilePath: node ? (node.data as { filePath?: string }).filePath || null : null,
       fileContent: null,
       sidebarTab: node ? 'preview' : 'structure',
-    }),
+    });
+
+    if (!node || (node.data as any).type !== 'file') return;
+
+    const state = useRepoStore.getState();
+    const filePath = node.id;
+
+    if (state.isScaleFree && !state.parsedFiles.includes(filePath)) {
+      const owner = state.owner;
+      const repo = state.repo;
+
+      if (!owner || !repo) return;
+
+      fetch(`/api/parse/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(filePath)}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error('Failed to parse file imports');
+        })
+        .then((data) => {
+          if (!data.edges) return;
+
+          const currentImportEdges = useRepoStore.getState().importEdges;
+          const newEdges = data.edges.filter((ne: any) => 
+            !currentImportEdges.some((ce) => ce.source === ne.source && ce.target === ne.target)
+          );
+
+          set({
+            importEdges: newEdges.length > 0 ? [...currentImportEdges, ...newEdges] : currentImportEdges,
+            parsedFiles: [...state.parsedFiles, filePath]
+          });
+        })
+        .catch((err) => console.error("On-demand import parse error:", err));
+    }
+  },
 
   setFileContent: (content: string | null) =>
     set({ fileContent: content, isLoadingContent: false }),
@@ -113,6 +148,8 @@ export const useRepoStore = create<RepoState>((set) => ({
       nodes: [],
       edges: [],
       importEdges: [],
+      isScaleFree: false,
+      parsedFiles: [],
       selectedNode: null,
       selectedFilePath: null,
       fileContent: null,

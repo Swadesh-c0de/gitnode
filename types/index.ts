@@ -170,6 +170,8 @@ export interface RepoState {
   nodes: GraphNode[];
   edges: GraphEdge[];
   importEdges: ImportEdge[];
+  isScaleFree: boolean;
+  parsedFiles: string[];
 
   // UI State
   viewMode: 'constellation' | 'tree';

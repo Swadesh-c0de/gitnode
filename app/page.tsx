@@ -6,7 +6,12 @@ import SearchBar from '@/components/ui/SearchBar';
 
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen bg-black text-white selection:bg-white selection:text-black overflow-hidden flex flex-col items-center justify-center">
+    <main
+      className="relative min-h-screen bg-black text-white selection:bg-white selection:text-black overflow-hidden flex flex-col items-center justify-center"
+    >
+      {/* Subtly fading light vignette to darken edges */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.85)_80%)] pointer-events-none" />
+
       <nav className="absolute top-0 left-0 w-full z-50 px-6 py-8 md:px-16 md:py-10 flex items-center justify-between">
         {/* Left: Branding */}
         <motion.div
@@ -102,13 +107,13 @@ export default function HomePage() {
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: "100%", opacity: 1 }}
               transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute -bottom-4 md:-bottom-6 left-0 h-[px] bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              className="absolute -bottom-4 md:-bottom-6 left-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"
             />
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="mt-6 md:mt-12 text-[8px] md:text-[10px] font-extralight text-white/30 uppercase tracking-[1em] md:tracking-[2em] md:ml-[2em] group-hover:text-white/60 transition-all duration-1000"
+              className="mt-6 md:mt-12 text-[8px] md:text-[9px] font-extralight text-white/30 uppercase tracking-[0.4em] md:tracking-[0.8em] md:ml-[0.8em] group-hover:text-white/60 transition-all duration-1000"
             >
               Architectural <span className="hidden sm:inline">Repository</span> Intelligence
             </motion.p>

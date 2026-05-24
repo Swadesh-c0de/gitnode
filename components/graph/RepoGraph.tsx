@@ -19,13 +19,14 @@ export default function RepoGraph({ sidebarOpen, setSidebarOpen, sidebarWidth }:
   const selectedNode = useRepoStore((s) => s.selectedNode);
   const viewMode = useRepoStore((s) => s.viewMode);
   const viewModeTransitioning = useRepoStore((s) => s.viewModeTransitioning);
+  const isScaleFree = useRepoStore((s) => s.isScaleFree);
 
   // Build graph from file tree
   const { graphNodes, graphEdges } = useMemo(() => {
     if (!fileTree.length) return { graphNodes: [], graphEdges: [] };
-    const result = buildGraph(fileTree, importEdges, filters, 500);
+    const result = buildGraph(fileTree, importEdges, filters, 500, isScaleFree, selectedNode?.id);
     return { graphNodes: result.nodes, graphEdges: result.edges };
-  }, [fileTree, importEdges, filters]);
+  }, [fileTree, importEdges, filters, isScaleFree, selectedNode?.id]);
 
   // Handle node selection from store update
   const onNodeSelect = useCallback((node: GraphNode | null) => {

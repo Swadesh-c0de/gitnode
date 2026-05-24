@@ -6,10 +6,6 @@
 import type { FileTreeNode, GraphNode, GraphEdge, ImportEdge, GraphFilters } from '@/types';
 import { getExtensionColor } from '@/types';
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 50;
-const FOLDER_PADDING = 40;
-
 function flattenTree(
   tree: FileTreeNode[],
   parentPath = '',
@@ -25,7 +21,30 @@ function flattenTree(
   return result;
 }
 
-// Layout is now handled by d3-force physics in hooks/useForceLayout.ts
+// Find a single node in the nested tree by splitting path directories (O(depth) lookup)
+function findNodeByPath(tree: FileTreeNode[], path: string): FileTreeNode | null {
+  if (!path) return null;
+  const parts = path.split('/');
+  let currentChildren = tree;
+  let result: FileTreeNode | null = null;
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    const isLast = i === parts.length - 1;
+    const found = currentChildren.find(n => n.name === part);
+    if (!found) return null;
+    if (isLast) {
+      result = found;
+      break;
+    }
+    if (found.type === 'directory') {
+      currentChildren = found.children || [];
+    } else {
+      return null;
+    }
+  }
+  return result;
+}
 
 function resolveImportTarget(importPath: string, sourcePath: string, nodeIds: Set<string>): string | null {
   if (nodeIds.has(importPath)) return importPath;
@@ -53,9 +72,10 @@ export function buildGraph(
   fileTree: FileTreeNode[],
   importEdges: ImportEdge[] = [],
   filters?: GraphFilters,
-  maxNodes = 500
+  maxNodes = 500,
+  isScaleFree = false,
+  selectedNodeId: string | null = null
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const flatItems = flattenTree(fileTree);
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
   const nodeIds = new Set<string>();
@@ -66,13 +86,53 @@ export function buildGraph(
   const showExternalDeps = filters?.showExternalDeps ?? false;
   let count = 0;
 
-  for (const { node: item, depth } of flatItems) {
-    if (count >= maxNodes || depth > maxDepth) continue;
-    if (item.type === 'file' && !showFiles) continue;
-    if (item.type === 'directory' && !showFolders) continue;
-    if (item.type === 'file' && fileTypes.length > 0 && !fileTypes.includes(item.extension || '')) continue;
+  if (isScaleFree) {
+    let activeDirPath = '';
+    const connectedFilePaths = new Set<string>();
+    let activeDirNode: FileTreeNode | null = null;
+    const filesToInclude: FileTreeNode[] = [];
+    
+    if (selectedNodeId) {
+      const parts = selectedNodeId.split('/');
+      activeDirPath = parts.slice(0, -1).join('/');
+      connectedFilePaths.add(selectedNodeId);
 
-    if (item.type === 'file') {
+      // Map dynamic synapses of the active node
+      importEdges.forEach((edge) => {
+        if (edge.source === selectedNodeId) connectedFilePaths.add(edge.target);
+        if (edge.target === selectedNodeId) connectedFilePaths.add(edge.source);
+      });
+
+      // Find the parent folder node directly using division indices
+      activeDirNode = activeDirPath ? findNodeByPath(fileTree, activeDirPath) : null;
+    } else {
+      // If no node is selected, activeDirNode is virtual root
+      activeDirNode = { path: '', name: 'root', type: 'directory', children: fileTree } as any;
+    }
+
+    // Add direct file children of the active directory
+    if (activeDirNode && activeDirNode.children) {
+      activeDirNode.children.forEach(child => {
+        if (child.type === 'file') {
+          filesToInclude.push(child);
+        }
+      });
+    }
+
+    // Add all dynamically connected files
+    connectedFilePaths.forEach(path => {
+      if (filesToInclude.some(f => f.path === path)) return;
+      const found = findNodeByPath(fileTree, path);
+      if (found && found.type === 'file') {
+        filesToInclude.push(found);
+      }
+    });
+
+    // Map files to GraphNode objects (Instant lookups, zero flat recursion!)
+    for (const item of filesToInclude) {
+      if (count >= maxNodes) break;
+      if (fileTypes.length > 0 && !fileTypes.includes(item.extension || '')) continue;
+
       const ext = item.extension || '';
       const colors = getExtensionColor(ext);
       nodes.push({
@@ -82,11 +142,29 @@ export function buildGraph(
       nodeIds.add(item.path);
       count++;
     }
+  } else {
+    // For smaller/medium repositories: Fallback to full tree flattening
+    const flatItems = flattenTree(fileTree);
+    for (const { node: item, depth } of flatItems) {
+      if (count >= maxNodes || depth > maxDepth) continue;
+      if (item.type === 'file' && !showFiles) continue;
+      if (item.type === 'directory' && !showFolders) continue;
+      if (item.type === 'file' && fileTypes.length > 0 && !fileTypes.includes(item.extension || '')) continue;
+
+      if (item.type === 'file') {
+        const ext = item.extension || '';
+        const colors = getExtensionColor(ext);
+        nodes.push({
+          id: item.path, type: 'cyber', position: { x: Math.random() * 500, y: Math.random() * 500 },
+          data: { label: item.name, filePath: item.path, extension: ext, size: item.size, type: 'file', color: colors.bg, glowColor: colors.glow },
+        });
+        nodeIds.add(item.path);
+        count++;
+      }
+    }
   }
 
-  // Remove structural hierarchy edges entirely
-  // (We no longer connect parentPath -> item.path)
-
+  // Resolve import links
   for (const imp of importEdges) {
     if (imp.type === 'external' && !showExternalDeps) continue;
     const targetId = resolveImportTarget(imp.target, imp.source, nodeIds);
@@ -101,4 +179,3 @@ export function buildGraph(
 
   return { nodes, edges };
 }
-

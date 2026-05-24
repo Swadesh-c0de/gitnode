@@ -26,6 +26,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // 0. Check repository size to see if we should run in Scale-Free preview mode
+    const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
+    const repoRes = await fetch(repoUrl, { headers });
+    if (repoRes.ok) {
+      const repoData = await repoRes.json();
+      const sizeKB = repoData.size || 0;
+      
+      // If repo size > 100,000 KB (100MB), bypass zipball download
+      if (sizeKB > 100000) {
+        console.warn(`[Scale-Free] Bypassing zipball parsing for massive repo: ${owner}/${repo} (${sizeKB} KB)`);
+        return NextResponse.json({ edges: [], isScaleFree: true });
+      }
+    }
+
     // 1. Fetch the zipball from GitHub
     const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
     const response = await fetch(zipUrl, { headers });

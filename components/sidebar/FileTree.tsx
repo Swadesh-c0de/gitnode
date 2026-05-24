@@ -44,11 +44,13 @@ export default function FileTree() {
     [nodes, selectNode]
   );
 
-  // Flatten tree respecting expanded state
+  // Flatten tree respecting expanded state with hard capping to protect DOM memory
   const flatNodes = useMemo(() => {
     const result: FlatNode[] = [];
     const walk = (items: FileTreeNode[], depth: number) => {
       for (const item of items) {
+        if (result.length >= 600) return; // Hard performance partition limit
+
         const matchesSearch =
           !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
         if (!matchesSearch && item.type === 'file') continue;
@@ -98,6 +100,13 @@ export default function FileTree() {
             onClick={handleFileClick}
           />
         ))}
+        {flatNodes.length >= 600 && (
+          <div className="px-5 py-3 border-t border-white/[0.03] text-center select-none bg-zinc-950/40">
+            <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
+              ... [Manifest capped. Search to locate distant files]
+            </span>
+          </div>
+        )}
         {flatNodes.length === 0 && !isLoading && (
           <div className="px-8 py-20 text-center space-y-4">
             <div className="w-10 h-10 border border-white/5 mx-auto flex items-center justify-center opacity-20">
