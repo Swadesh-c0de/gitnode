@@ -2,18 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Copy, Check, FileCode, CornerDownRight } from "lucide-react";
 import { useRepoStore } from "@/store/repoStore";
 import type { GraphNode } from "@/types";
-
-function formatBytes(bytes?: number): string {
-  if (bytes === undefined || bytes === null) return 'N/A';
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
+import { formatBytes } from "@/lib/utils";
 
 export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidth }: { sidebarOpen: boolean, setSidebarOpen: (o: boolean) => void, sidebarWidth: number }) {
   const selectedNode = useRepoStore((s) => s.selectedNode);
@@ -22,6 +14,7 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
   const edges = useRepoStore((s) => s.edges);
   const nodes = useRepoStore((s) => s.nodes);
   const [isMobile, setIsMobile] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -37,7 +30,7 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
   const data = selectedNode.data as any;
   const label = data.label || "UNKNOWN";
   const type = selectedNode.type || "node";
-  
+
   const outboundEdges = edges.filter((e) => e.source === selectedNode.id);
   const inboundEdges = edges.filter((e) => e.target === selectedNode.id);
   const totalSynapses = outboundEdges.length + inboundEdges.length;
@@ -45,7 +38,7 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
   const imports = outboundEdges
     .map((e) => nodes.find((n) => n.id === e.target))
     .filter(Boolean) as GraphNode[];
-    
+
   const importedBy = inboundEdges
     .map((e) => nodes.find((n) => n.id === e.source))
     .filter(Boolean) as GraphNode[];
@@ -55,75 +48,100 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
     setSidebarTab('preview');
   };
 
+  const handleCopyPath = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.filePath) {
+      navigator.clipboard.writeText(data.filePath);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const dirPath = data.filePath ? data.filePath.split('/').slice(0, -1).join('/') + '/' : '';
   const nodeColor = data.color || '#3b82f6';
+  const ext = data.extension || (data.filePath ? data.filePath.split('.').pop() : '');
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ 
-        opacity: 1, 
-        y: 0, 
-        x: isMobile ? 0 : (sidebarOpen ? -(sidebarWidth + 20) : 0)
+      initial={{ opacity: 0, y: 10 }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        x: isMobile ? 0 : (sidebarOpen ? -(sidebarWidth + 16) : 0)
       }}
-      exit={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`absolute z-40 pointer-events-auto transition-all duration-200
-        ${isMobile 
-          ? 'bottom-4 inset-x-4 w-auto' 
-          : 'bottom-6 right-6 w-80'
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className={`absolute z-30 pointer-events-auto transition-all duration-300
+        ${isMobile
+          ? 'bottom-3 inset-x-3 w-auto'
+          : 'bottom-4 right-4 w-76'
         }
       `}
     >
-      <div className="bg-zinc-950/90 backdrop-blur-md border border-zinc-800/80 p-4 rounded-xl shadow-2xl relative select-none">
+      <div className="bg-zinc-950/85 backdrop-blur-2xl border border-white/[0.08] p-3.5 rounded-xl shadow-[0_16px_40px_rgba(0,0,0,0.85)] relative select-none">
         {/* Header section with path and close button */}
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3 mb-2.5">
+          <div className="min-w-0 flex-1">
             {dirPath && (
-              <span className="text-[10px] font-mono text-zinc-500 tracking-wide block truncate">
-                {dirPath}
-              </span>
+              <div className="flex items-center gap-1 group/path cursor-pointer" onClick={handleCopyPath} title="Click to copy full path">
+                <span className="text-[9px] font-mono text-zinc-500 tracking-tight truncate group-hover/path:text-zinc-300 transition-colors">
+                  {dirPath}
+                </span>
+                {copied ? (
+                  <Check size={10} className="text-emerald-400 shrink-0" />
+                ) : (
+                  <Copy size={9} className="text-zinc-600 group-hover/path:text-zinc-400 shrink-0 opacity-0 group-hover/path:opacity-100 transition-opacity" />
+                )}
+              </div>
             )}
-            <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 truncate mt-0.5">
-              <span className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: nodeColor }} />
+            <h3 className="text-xs font-bold text-white flex items-center gap-2 truncate mt-0.5">
+              <span
+                className="w-2 h-2 rounded-full shrink-0 shadow-[0_0_8px_currentColor]"
+                style={{ color: nodeColor, backgroundColor: nodeColor }}
+              />
               <span className="truncate">{label}</span>
             </h3>
           </div>
-          <button 
-            onClick={() => selectNode(null)} 
-            className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 rounded transition-colors shrink-0"
+          <button
+            onClick={() => selectNode(null)}
+            className="w-5 h-5 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/[0.06] rounded transition-colors shrink-0"
+            title="Close Inspector"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         </div>
 
-        {/* Metadata horizontal row */}
-        <div className="flex flex-wrap items-center gap-x-2 text-[10px] text-zinc-400 font-mono mb-4 border-b border-zinc-900 pb-3">
-          <span className="uppercase text-zinc-500">{type}</span>
-          <span className="text-zinc-800">•</span>
-          <span>{formatBytes(data.size)}</span>
+        {/* Metadata Badges */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[8.5px] font-mono mb-3">
+          <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-zinc-400 uppercase font-semibold">
+            {ext ? ext.toUpperCase() : type}
+          </span>
+          {data.size !== undefined && (
+            <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-zinc-400 font-semibold">
+              {formatBytes(data.size)}
+            </span>
+          )}
           {totalSynapses > 0 && (
-            <>
-              <span className="text-zinc-800">•</span>
-              <span>{totalSynapses} link{totalSynapses !== 1 && 's'}</span>
-            </>
+            <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-zinc-400 font-semibold">
+              {totalSynapses} link{totalSynapses !== 1 && 's'}
+            </span>
           )}
         </div>
 
-        {/* Dynamic connection paths */}
+        {/* Dynamic connection pills */}
         {totalSynapses > 0 && (
-          <div className="space-y-3 mb-4 max-h-32 overflow-y-auto pr-0.5 scrollbar-thin">
+          <div className="space-y-2 mb-3 max-h-28 overflow-y-auto pr-0.5 scrollbar-thin">
             {imports.length > 0 && (
               <div>
-                <span className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider block mb-1">Imports</span>
-                <div className="flex flex-wrap gap-1.5">
+                <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">Dependencies</span>
+                <div className="flex flex-wrap gap-1">
                   {imports.map((impNode) => {
                     const impData = impNode.data as any;
                     return (
                       <button
                         key={impNode.id}
                         onClick={() => selectNode(impNode)}
-                        className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-900/60 border border-zinc-800/50 text-[10px] text-zinc-300 hover:text-white transition-colors font-mono truncate max-w-[130px] flex items-center gap-1.5"
+                        className="px-1.5 py-0.5 rounded bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-[9px] text-zinc-300 hover:text-white transition-colors font-mono truncate max-w-[120px] flex items-center gap-1"
                       >
                         <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: impData.color || '#475569' }} />
                         <span className="truncate">{impData.label}</span>
@@ -136,15 +154,15 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
 
             {importedBy.length > 0 && (
               <div>
-                <span className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider block mb-1">Imported By</span>
-                <div className="flex flex-wrap gap-1.5">
+                <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">Imported By</span>
+                <div className="flex flex-wrap gap-1">
                   {importedBy.map((impNode) => {
                     const impData = impNode.data as any;
                     return (
                       <button
                         key={impNode.id}
                         onClick={() => selectNode(impNode)}
-                        className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-900/60 border border-zinc-800/50 text-[10px] text-zinc-300 hover:text-white transition-colors font-mono truncate max-w-[130px] flex items-center gap-1.5"
+                        className="px-1.5 py-0.5 rounded bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-[9px] text-zinc-300 hover:text-white transition-colors font-mono truncate max-w-[120px] flex items-center gap-1"
                       >
                         <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: impData.color || '#475569' }} />
                         <span className="truncate">{impData.label}</span>
@@ -157,14 +175,17 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
           </div>
         )}
 
-        {/* Explore Button */}
-        <button 
+        {/* Explore Source Button */}
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleExplore}
-          className="w-full py-2 px-3 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-950 text-xs font-medium transition-colors flex items-center justify-center gap-1 shrink-0"
+          className="w-full py-1.5 px-3 rounded-lg bg-white text-zinc-950 text-[11px] font-bold tracking-tight hover:bg-zinc-200 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
         >
+          <FileCode size={12} className="text-zinc-700" />
           <span>Explore Source</span>
-          <ChevronRight size={14} className="text-zinc-600" />
-        </button>
+          <ChevronRight size={12} className="text-zinc-600" />
+        </motion.button>
       </div>
     </motion.div>
   );

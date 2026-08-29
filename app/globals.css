@@ -36,8 +36,10 @@
 
   * {
     box-sizing: border-box;
+  }
+
+  canvas.graph-canvas {
     cursor: crosshair;
-    /* Premium technical feel */
   }
 
   body {

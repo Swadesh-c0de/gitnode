@@ -1,9 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { fetchFileContent } from '@/lib/github';
-import { parseImports } from '@/lib/parseImports';
-import type { AppError } from '@/types';
+/**
+ * API Route: GET /api/parse/file
+ * On-demand Just-in-Time (JIT) AST import parsing for a single file.
+ * Query params: owner, repo, path
+ */
 
-export const maxDuration = 10; // Simple, lightweight lookup
+import { NextRequest } from 'next/server';
+import { fetchFileContent } from '@/lib/github';
+import { parseImports } from '@/lib/parser';
+import { globalCache } from '@/lib/cache';
+import { apiSuccess, apiError, handleApiError } from '@/lib/api';
+import { CACHE_TTL } from '@/lib/constants/limits';
+
+export const maxDuration = 10;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -12,33 +20,19 @@ export async function GET(request: NextRequest) {
   const path = searchParams.get('path');
 
   if (!owner || !repo || !path) {
-    return NextResponse.json(
-      { error: 'Missing owner, repo, or path query parameters' },
-      { status: 400 }
-    );
+    return apiError('Missing owner, repo, or path query parameters', 400);
   }
 
-  try {
-    // Fetch only the single file's content
-    const content = await fetchFileContent(owner, repo, path);
-    // Parse the file imports dynamically
-    const edges = parseImports(path, content);
+  const cacheKey = `parsefile:${owner.toLowerCase()}/${repo.toLowerCase()}:${path}`;
 
-    return NextResponse.json({ edges });
+  try {
+    const edges = await globalCache.getOrSet(cacheKey, CACHE_TTL.PARSED_FILE, async () => {
+      const fileData = await fetchFileContent(owner, repo, path);
+      return parseImports(path, fileData.content);
+    });
+
+    return apiSuccess({ edges });
   } catch (error: unknown) {
-    const appError = error as AppError;
-    if (appError.type === 'not_found') {
-      return NextResponse.json({ error: appError.message }, { status: 404 });
-    }
-    if (appError.type === 'rate_limit') {
-      return NextResponse.json(
-        { error: appError.message, retryAfter: appError.retryAfter },
-        { status: 429 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'Failed to retrieve or parse file content' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

@@ -97,9 +97,9 @@ export default function HomePage() {
           <div className="relative inline-block group">
             <motion.h1
               initial={{ opacity: 0, filter: "blur(20px)", letterSpacing: "0em" }}
-              animate={{ opacity: 1, filter: "blur(0px)", letterSpacing: "-0.05em" }}
+              animate={{ opacity: 1, filter: "blur(0px)", letterSpacing: "-0.04em" }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[18vw] md:text-[12rem] font-extralight leading-none uppercase text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/10 bg-[size:100%_200%] transition-all duration-1000 group-hover:bg-[position:0_100%]"
+              className="text-[clamp(3.75rem,13vw,10rem)] font-extralight leading-none uppercase text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/20 select-none"
             >
               GitNode
             </motion.h1>
@@ -107,13 +107,13 @@ export default function HomePage() {
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: "100%", opacity: 1 }}
               transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute -bottom-4 md:-bottom-6 left-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              className="absolute -bottom-3 md:-bottom-5 left-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"
             />
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="mt-6 md:mt-12 text-[8px] md:text-[9px] font-extralight text-white/30 uppercase tracking-[0.4em] md:tracking-[0.8em] md:ml-[0.8em] group-hover:text-white/60 transition-all duration-1000"
+              className="mt-4 md:mt-8 text-[8px] md:text-[9px] font-mono text-white/40 uppercase tracking-[0.3em] md:tracking-[0.6em]"
             >
               Architectural <span className="hidden sm:inline">Repository</span> Intelligence
             </motion.p>

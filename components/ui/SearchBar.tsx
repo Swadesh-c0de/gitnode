@@ -39,7 +39,20 @@ export default function SearchBar() {
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusIndex, setStatusIndex] = useState(0);
+  const [recentRepos, setRecentRepos] = useState<string[]>([]);
   const router = useRouter();
+
+  // Load recent repos from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('gitnode_recent_repos');
+      if (saved) {
+        setRecentRepos(JSON.parse(saved).slice(0, 4));
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -59,9 +72,19 @@ export default function SearchBar() {
       }
       setError('');
       setIsLoading(true);
+
+      // Save to recent repos
+      try {
+        const repoStr = `${parsed.owner}/${parsed.repo}`;
+        const updated = [repoStr, ...recentRepos.filter((r) => r.toLowerCase() !== repoStr.toLowerCase())].slice(0, 5);
+        localStorage.setItem('gitnode_recent_repos', JSON.stringify(updated));
+      } catch {
+        // Ignore
+      }
+
       router.push(`/repo/${parsed.owner}/${parsed.repo}`);
     },
-    [input, router]
+    [input, recentRepos, router]
   );
 
   return (
@@ -163,9 +186,27 @@ export default function SearchBar() {
         )}
       </AnimatePresence>
 
+      {/* Suggested & Recent repositories */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-8">
+        {recentRepos.length > 0 ? (
+          <>
+            <span className="text-[8px] md:text-[9px] font-black text-white/30 uppercase tracking-[0.4em] w-full text-center md:w-auto">Recent:</span>
+            {recentRepos.map((repoName) => (
+              <button
+                key={repoName}
+                disabled={isLoading}
+                onClick={() => setInput(repoName)}
+                className="text-[8px] md:text-[9px] font-black text-white/50 uppercase tracking-widest hover:text-white transition-colors border-b border-white/10 hover:border-white/40 pb-0.5"
+              >
+                {repoName}
+              </button>
+            ))}
+            <div className="hidden md:block w-px h-3 bg-white/10" />
+          </>
+        ) : null}
+
         <span className="text-[8px] md:text-[9px] font-black text-white/10 uppercase tracking-[0.4em] w-full text-center md:w-auto">Suggested:</span>
-        {['facebook/react', 'vercel/next.js', 'denoland/deno'].map((example) => (
+        {['facebook/react', 'vercel/next.js', 'astral-sh/uv', 'shadcn-ui/ui'].map((example) => (
           <button
             key={example}
             disabled={isLoading}

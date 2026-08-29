@@ -32,7 +32,7 @@ export default function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
         >
           {config.icon}
         </motion.div>
-        
+
         {/* Decorative corner borders */}
         <div className="absolute -top-4 -left-4 w-6 h-6 border-t border-l border-white/40" />
         <div className="absolute -bottom-4 -right-4 w-6 h-6 border-b border-r border-white/40" />
@@ -41,11 +41,11 @@ export default function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
       {/* Message Section */}
       <div className="space-y-4 max-w-lg">
         <div className="flex flex-col items-center gap-2">
-            <span className="technical-label">Error Detected</span>
-            <h2 className="text-2xl font-black text-white uppercase tracking-[0.2em]">{config.title}</h2>
+          <span className="technical-label">Error Detected</span>
+          <h2 className="text-2xl font-black text-white uppercase tracking-[0.2em]">{config.title}</h2>
         </div>
         <p className="text-[11px] font-mono text-white/20 uppercase tracking-widest leading-relaxed">
-            {error.message.toUpperCase()}
+          {error.message.toUpperCase()}
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export default function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
       {/* Technical Footnote */}
       <div className="pt-8">
         <p className="text-[9px] font-mono text-white/10 uppercase tracking-widest">
-            System Status: Error // Location: Repository Graph
+          System Status: Error // Location: Repository Graph
         </p>
       </div>
     </motion.div>

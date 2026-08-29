@@ -1,5 +1,5 @@
 /**
- * RepoLens — Zustand Store
+ * GitNode — Zustand Store
  * Global state management for repository data, graph state, and UI.
  */
 
@@ -86,30 +86,37 @@ export const useRepoStore = create<RepoState>((set) => ({
     const filePath = node.id;
 
     if (state.isScaleFree && !state.parsedFiles.includes(filePath)) {
-      const owner = state.owner;
-      const repo = state.repo;
+      state.fetchFileImports(filePath);
+    }
+  },
 
-      if (!owner || !repo) return;
+  fetchFileImports: async (filePath: string) => {
+    const state = useRepoStore.getState();
+    const { owner, repo, isScaleFree, parsedFiles, importEdges } = state;
 
-      fetch(`/api/parse/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(filePath)}`)
-        .then((res) => {
-          if (res.ok) return res.json();
-          throw new Error('Failed to parse file imports');
-        })
-        .then((data) => {
-          if (!data.edges) return;
+    if (!owner || !repo || !isScaleFree || parsedFiles.includes(filePath)) return;
 
-          const currentImportEdges = useRepoStore.getState().importEdges;
-          const newEdges = data.edges.filter((ne: any) => 
-            !currentImportEdges.some((ce) => ce.source === ne.source && ce.target === ne.target)
-          );
+    try {
+      const res = await fetch(
+        `/api/parse/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(filePath)}`
+      );
+      if (!res.ok) throw new Error('Failed to parse file imports');
 
-          set({
-            importEdges: newEdges.length > 0 ? [...currentImportEdges, ...newEdges] : currentImportEdges,
-            parsedFiles: [...state.parsedFiles, filePath]
-          });
-        })
-        .catch((err) => console.error("On-demand import parse error:", err));
+      const data = await res.json();
+      if (!data.edges || !Array.isArray(data.edges)) return;
+
+      const currentImportEdges = useRepoStore.getState().importEdges;
+      const newEdges = data.edges.filter(
+        (ne: ImportEdge) =>
+          !currentImportEdges.some((ce) => ce.source === ne.source && ce.target === ne.target)
+      );
+
+      set((s) => ({
+        importEdges: newEdges.length > 0 ? [...s.importEdges, ...newEdges] : s.importEdges,
+        parsedFiles: [...s.parsedFiles, filePath],
+      }));
+    } catch (err) {
+      console.error('On-demand import parse error:', err);
     }
   },
 

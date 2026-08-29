@@ -46,9 +46,29 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
   const rafRef = useRef<number>(0);
   const dragNodeRef = useRef<SimNode | null>(null);
 
-  // Sync selectedRef
+  // Center camera on selected node when selectedNodeId changes
   useEffect(() => {
     selectedRef.current = selectedNodeId ?? null;
+    if (!selectedNodeId || !canvasRef.current || !containerRef.current) return;
+
+    const targetNode = nodesRef.current.find(n => n.id === selectedNodeId);
+    if (targetNode && isFinite(targetNode.x!) && isFinite(targetNode.y!)) {
+      const container = containerRef.current;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const currentScale = Math.max(0.8, Math.min(2.5, transformRef.current.k));
+      const targetX = width / 2 - targetNode.x! * currentScale;
+      const targetY = height / 2 - targetNode.y! * currentScale;
+
+      d3.select(canvasRef.current)
+        .transition()
+        .duration(650)
+        .ease(d3.easeCubicOut)
+        .call(
+          (d3.zoom<HTMLCanvasElement, unknown>().scaleExtent([0.05, 10]) as any).transform,
+          d3.zoomIdentity.translate(targetX, targetY).scale(currentScale)
+        );
+    }
   }, [selectedNodeId]);
 
   // Convert Repo nodes to Sim nodes
@@ -129,7 +149,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       .force("x", d3.forceX(width / 2).strength(0.06))
       .force("y", d3.forceY(height / 2).strength(0.06))
       .force("collision", d3.forceCollide<SimNode>().radius(d => nodeR(d) + 16).strength(0.75))
-      .alphaDecay(0.012)
+      .alphaDecay(0.015)
       .velocityDecay(0.36);
 
     simRef.current = sim;
@@ -351,9 +371,25 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     }
 
     let running = true;
-    function loop() {
+    let lastRenderTime = 0;
+
+    function loop(timestamp: number) {
       if (!running) return;
-      draw();
+
+      const isPhysicsActive = sim.alpha() > 0.005;
+      const hasActiveSelection = !!selectedRef.current || !!hoveredRef.current || !!dragNodeRef.current;
+      const isParallaxMoving = Math.abs(parallaxTarget.current.x - parallaxCurrent.current.x) > 0.01 ||
+        Math.abs(parallaxTarget.current.y - parallaxCurrent.current.y) > 0.01;
+
+      // Full 60fps render when physics, dragging, hovering, or camera is in motion
+      // When idle, throttle render ticks to minimize power/CPU usage while keeping pulses alive
+      const shouldRender = isPhysicsActive || hasActiveSelection || isParallaxMoving || (timestamp - lastRenderTime > 80);
+
+      if (shouldRender) {
+        draw();
+        lastRenderTime = timestamp;
+      }
+
       rafRef.current = requestAnimationFrame(loop);
     }
     rafRef.current = requestAnimationFrame(loop);
@@ -385,7 +421,10 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         }
         return !e.button;
       })
-      .on("zoom", e => { transformRef.current = e.transform; });
+      .on("zoom", e => {
+        transformRef.current = e.transform;
+        draw();
+      });
 
     d3.select(canvas).call(zoom);
 
@@ -469,8 +508,8 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       <canvas ref={canvasRef} className="w-full h-full block" />
 
       {/* Cinematic Minimap */}
-      <div className="absolute bottom-8 left-8 z-20 border border-white/10 bg-black/80 backdrop-blur-xl rounded-lg overflow-hidden">
-        <canvas ref={minimapRef} width={200} height={120} className="block" />
+      <div className="hidden sm:block absolute bottom-4 left-4 z-20 border border-white/[0.08] bg-zinc-950/80 backdrop-blur-xl rounded-lg overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
+        <canvas ref={minimapRef} width={180} height={105} className="block" />
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none border-t border-white/5" />
       </div>
     </div>

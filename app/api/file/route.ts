@@ -1,12 +1,14 @@
 /**
  * API Route: GET /api/file
- * Fetches individual file content from a repository.
+ * Fetches individual file content or image data from a repository.
  * Query params: owner, repo, path
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { fetchFileContent } from '@/lib/github';
-import type { AppError } from '@/types';
+import { globalCache } from '@/lib/cache';
+import { apiSuccess, apiError, handleApiError } from '@/lib/api';
+import { CACHE_TTL } from '@/lib/constants/limits';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,26 +17,18 @@ export async function GET(request: NextRequest) {
   const path = searchParams.get('path');
 
   if (!owner || !repo || !path) {
-    return NextResponse.json(
-      { error: 'Missing owner, repo, or path query parameter' },
-      { status: 400 }
-    );
+    return apiError('Missing owner, repo, or path query parameter', 400);
   }
 
+  const cacheKey = `file:${owner.toLowerCase()}/${repo.toLowerCase()}:${path}`;
+
   try {
-    const content = await fetchFileContent(owner, repo, path);
-    return NextResponse.json({ content, path });
+    const fileData = await globalCache.getOrSet(cacheKey, CACHE_TTL.FILE, async () => {
+      return await fetchFileContent(owner, repo, path);
+    });
+
+    return apiSuccess({ ...fileData, path });
   } catch (error: unknown) {
-    const appError = error as AppError;
-    if (appError.type === 'not_found') {
-      return NextResponse.json({ error: appError.message }, { status: 404 });
-    }
-    if (appError.type === 'rate_limit') {
-      return NextResponse.json(
-        { error: appError.message, retryAfter: appError.retryAfter },
-        { status: 429 }
-      );
-    }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error);
   }
 }
