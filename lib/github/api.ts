@@ -139,9 +139,26 @@ export async function fetchFileTree(owner: string, repo: string): Promise<FileTr
 
     return root;
   } catch (error: unknown) {
-    const err = error as { type?: string };
+    const err = error as { status?: number; type?: string };
+    if (err.status === 409) {
+      return [];
+    }
     if (err.type === 'rate_limit' || err.type === 'not_found' || err.type === 'private_repo') {
       throw error;
+    }
+    if (err.status === 404) {
+      const notFoundError: AppError = {
+        type: 'not_found',
+        message: `Repository ${owner}/${repo} not found`,
+      };
+      throw notFoundError;
+    }
+    if (err.status === 401 || err.status === 403) {
+      const privateError: AppError = {
+        type: 'private_repo',
+        message: 'This repository is private. Please add a GitHub token.',
+      };
+      throw privateError;
     }
     throw error;
   }

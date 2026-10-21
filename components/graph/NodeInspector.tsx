@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, ChevronRight, Copy, Check, FileCode, CornerDownRight } from "lucide-react";
+import { X, ChevronRight, Copy, Check, FileCode } from "lucide-react";
 import { useRepoStore } from "@/store/repoStore";
 import type { GraphNode } from "@/types";
 import { formatBytes } from "@/lib/utils";
@@ -27,7 +27,7 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
 
   if (!selectedNode) return null;
 
-  const data = selectedNode.data as any;
+  const data = selectedNode.data;
   const label = data.label || "UNKNOWN";
   const type = selectedNode.type || "node";
 
@@ -58,8 +58,8 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
   };
 
   const dirPath = data.filePath ? data.filePath.split('/').slice(0, -1).join('/') + '/' : '';
-  const nodeColor = data.color || '#3b82f6';
-  const ext = data.extension || (data.filePath ? data.filePath.split('.').pop() : '');
+  const nodeColor = 'color' in data ? (data.color as string) : '#3b82f6';
+  const ext = ('extension' in data && typeof data.extension === 'string' ? data.extension : '') || (data.filePath ? data.filePath.split('.').pop() : '');
 
   return (
     <motion.div
@@ -116,7 +116,7 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
           <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-zinc-400 uppercase font-semibold">
             {ext ? ext.toUpperCase() : type}
           </span>
-          {data.size !== undefined && (
+          {'size' in data && typeof data.size === 'number' && (
             <span className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-zinc-400 font-semibold">
               {formatBytes(data.size)}
             </span>
@@ -136,14 +136,15 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
                 <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">Dependencies</span>
                 <div className="flex flex-wrap gap-1">
                   {imports.map((impNode) => {
-                    const impData = impNode.data as any;
+                    const impData = impNode.data;
+                    const impColor = 'color' in impData ? (impData.color as string) : '#475569';
                     return (
                       <button
                         key={impNode.id}
                         onClick={() => selectNode(impNode)}
                         className="px-1.5 py-0.5 rounded bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-[9px] text-zinc-300 hover:text-white transition-colors font-mono truncate max-w-[120px] flex items-center gap-1"
                       >
-                        <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: impData.color || '#475569' }} />
+                        <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: impColor }} />
                         <span className="truncate">{impData.label}</span>
                       </button>
                     );
@@ -157,14 +158,15 @@ export default function NodeInspector({ sidebarOpen, setSidebarOpen, sidebarWidt
                 <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider block mb-1">Imported By</span>
                 <div className="flex flex-wrap gap-1">
                   {importedBy.map((impNode) => {
-                    const impData = impNode.data as any;
+                    const impData = impNode.data;
+                    const impColor = 'color' in impData ? (impData.color as string) : '#475569';
                     return (
                       <button
                         key={impNode.id}
                         onClick={() => selectNode(impNode)}
                         className="px-1.5 py-0.5 rounded bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] text-[9px] text-zinc-300 hover:text-white transition-colors font-mono truncate max-w-[120px] flex items-center gap-1"
                       >
-                        <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: impData.color || '#475569' }} />
+                        <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: impColor }} />
                         <span className="truncate">{impData.label}</span>
                       </button>
                     );

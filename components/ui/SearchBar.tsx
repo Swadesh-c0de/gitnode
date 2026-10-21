@@ -7,7 +7,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowRight, AlertCircle, Terminal, Layers } from 'lucide-react';
+import { Search, ArrowRight, AlertCircle, Terminal } from 'lucide-react';
 
 /** Parse a GitHub URL or shorthand into owner/repo */
 function parseGitHubUrl(input: string): { owner: string; repo: string } | null {

@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRepoStore } from '@/store/repoStore';
 import { ChevronUp, Eye, Sliders, Layers } from 'lucide-react';
+import { flattenTree } from '@/lib/graph/treeUtils';
 
 /**
  * GraphControls — Filter panel for the graph canvas with holographic aesthetics.
@@ -11,7 +12,7 @@ import { ChevronUp, Eye, Sliders, Layers } from 'lucide-react';
 export default function GraphControls() {
   const filters = useRepoStore((s) => s.filters);
   const setFilters = useRepoStore((s) => s.setFilters);
-  const nodes = useRepoStore((s) => s.nodes);
+  const fileTree = useRepoStore((s) => s.fileTree);
   const viewMode = useRepoStore((s) => s.viewMode);
   const setViewMode = useRepoStore((s) => s.setViewMode);
   const [isMinimized, setIsMinimized] = React.useState(false);
@@ -28,14 +29,16 @@ export default function GraphControls() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const extensions = Array.from(
-    new Set(
-      nodes
-        .filter((n) => n.type === 'file')
-        .map((n) => (n.data as { extension?: string }).extension || '')
-        .filter(Boolean)
-    )
-  ).sort();
+  const extensions = React.useMemo(() => {
+    const flat = flattenTree(fileTree);
+    return Array.from(
+      new Set(
+        flat
+          .filter((item) => item.node.type === 'file' && item.node.extension)
+          .map((item) => item.node.extension!)
+      )
+    ).sort();
+  }, [fileTree]);
 
   return (
     <motion.div

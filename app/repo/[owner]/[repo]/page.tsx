@@ -3,7 +3,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, FolderTree, FileCode, BarChart3, PanelLeftClose, PanelLeftOpen, Terminal, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, FolderTree, FileCode, BarChart3, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Link from 'next/link';
 
 import RepoGraph from '@/components/graph/RepoGraph';
@@ -75,7 +75,7 @@ export default function RepoPage() {
   const repo = params.repo as string;
 
   const {
-    metadata, isLoading, error, sidebarTab, loadingMessage,
+    isLoading, error, sidebarTab, loadingMessage,
     setRepo, setMetadata, setFileTree, setLanguages,
     setContributors, setTechStack, setSidebarTab,
     setLoading, setError, reset,
@@ -138,9 +138,17 @@ export default function RepoPage() {
       // 1. Fetch Metadata (Critical Path)
       const metaRes = await fetch(`/api/repo?owner=${owner}&repo=${repo}`);
       if (!metaRes.ok) {
-        const data = await metaRes.json();
+        const data = await metaRes.json().catch(() => ({}));
         if (metaRes.status === 404) {
-          setError({ type: 'not_found', message: 'Repository not found' });
+          setError({ type: 'not_found', message: data.error || 'Repository not found' });
+          return;
+        }
+        if (metaRes.status === 429) {
+          setError({ type: 'rate_limit', message: data.error || 'Rate limit exceeded', retryAfter: data.retryAfter });
+          return;
+        }
+        if (metaRes.status === 401 || metaRes.status === 403) {
+          setError({ type: 'private_repo', message: data.error || 'Access denied' });
           return;
         }
         throw new Error(data.error || 'Unexpected error occurred');
@@ -173,9 +181,25 @@ export default function RepoPage() {
 
       // 3. Optimized Tech Stack Detection
       const configFiles: Record<string, string> = {};
-      const configNames = ['package.json', 'requirements.txt', 'Cargo.toml', 'go.mod', 'pom.xml', 'build.gradle'];
+      const configNames = [
+        'package.json',
+        'requirements.txt',
+        'Cargo.toml',
+        'go.mod',
+        'pom.xml',
+        'build.gradle',
+        'build.gradle.kts',
+        'Dockerfile',
+        'docker-compose.yml',
+        'docker-compose.yaml'
+      ];
 
-      const fileExistanceMap = new Set((treeData.tree || []).map((n: { name: string }) => n.name));
+      const treeItems = treeData.tree || [];
+      if (treeItems.some((n: { name?: string; path?: string }) => n.name === '.github' || n.path === '.github' || n.path?.startsWith('.github/'))) {
+        configFiles['.github'] = 'true';
+      }
+
+      const fileExistanceMap = new Set(treeItems.map((n: { name: string }) => n.name));
       const filesToFetch = configNames.filter(name => fileExistanceMap.has(name));
 
       if (filesToFetch.length > 0) {
@@ -195,10 +219,10 @@ export default function RepoPage() {
         fileContents.forEach(fc => {
           if (fc) configFiles[fc.name] = fc.content;
         });
+      }
 
-        if (Object.keys(configFiles).length > 0) {
-          setTechStack(detectTechStack(configFiles));
-        }
+      if (Object.keys(configFiles).length > 0) {
+        setTechStack(detectTechStack(configFiles));
       }
 
       setLoading(false);

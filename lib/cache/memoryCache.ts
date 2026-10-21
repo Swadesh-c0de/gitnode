@@ -25,13 +25,17 @@ export class MemoryCache {
       return null;
     }
 
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
     return entry.data as T;
   }
 
   /** Set an item in cache with TTL and capacity management */
   set<T>(key: string, data: T, ttlMs = 10 * 60 * 1000): void {
-    // Evict oldest item if capacity reached
-    if (this.cache.size >= this.maxItems) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxItems) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey) this.cache.delete(oldestKey);
     }

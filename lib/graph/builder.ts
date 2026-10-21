@@ -45,7 +45,7 @@ export function buildGraph(
   const showFiles = filters?.showFiles ?? true;
   const showFolders = filters?.showFolders ?? true;
   const fileTypes = filters?.fileTypes ?? [];
-  const showExternalDeps = filters?.showExternalDeps ?? false;
+  const showExternalDeps = filters?.showExternalDeps ?? true;
   let count = 0;
 
   if (isScaleFree) {
@@ -145,6 +145,8 @@ export function buildGraph(
       }
     }
   }
+
+  if (!showExternalDeps) return { nodes, edges };
 
   // Resolve import links
   for (const imp of importEdges) {

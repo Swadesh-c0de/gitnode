@@ -36,6 +36,7 @@ async function runTests() {
   assert(detectLanguage('server.go') === 'go', 'Detects Go');
   assert(detectLanguage('App.java') === 'java', 'Detects Java');
   assert(detectLanguage('readme.md') === null, 'Ignores non-code extensions');
+  assert(classifyImport('./components/Button', 'typescript') === 'local', 'Classifies local import');
 
   // TypeScript / JavaScript
   const tsCode = `
@@ -129,6 +130,7 @@ async function runTests() {
   assert(detectedFromPkg.some(t => t.name === 'React'), 'Detects React from package.json');
   assert(detectedFromPkg.some(t => t.name === 'Prisma'), 'Detects Prisma from package.json');
   assert(detectedFromPkg.some(t => t.name === 'Tailwind CSS'), 'Detects Tailwind from package.json');
+  assert(detectFromRequirements('flask==2.0.1\nrequests>=2.25.0').some(t => t.name === 'Flask'), 'Detects Flask from requirements.txt');
 
   const mockFiles = {
     'package.json': mockPackageJson,
@@ -149,9 +151,9 @@ async function runTests() {
 
   assert(cache.get('key1') === 'val1', 'Gets unexpired cache item');
 
-  // Capacity eviction
+  // Capacity eviction (key1 was refreshed by get, so key2 is the least recently used item)
   cache.set('key4', 'val4', 1000);
-  assert(cache.get('key1') === null, 'Evicts oldest item when max capacity is reached');
+  assert(cache.get('key2') === null, 'Evicts oldest item when max capacity is reached');
   assert(cache.get('key4') === 'val4', 'Stores newest item properly');
 
   // getOrSet

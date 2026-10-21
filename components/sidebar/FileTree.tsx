@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRight, Search, X, FolderTree, ChevronsUpDown } from 'lucide-react';
+import { ChevronRight, Search, X, ChevronsUpDown } from 'lucide-react';
 import { useRepoStore } from '@/store/repoStore';
 import type { FileTreeNode } from '@/types';
 import { getExtensionColor } from '@/types';
@@ -15,6 +15,12 @@ interface FlatNode {
   node: FileTreeNode;
   depth: number;
   isExpanded?: boolean;
+}
+
+function hasMatchingDescendant(node: FileTreeNode, q: string): boolean {
+  if (node.name.toLowerCase().includes(q)) return true;
+  if (!node.children) return false;
+  return node.children.some((child) => hasMatchingDescendant(child, q));
 }
 
 export default function FileTree() {
@@ -58,6 +64,22 @@ export default function FileTree() {
       const graphNode = nodes.find((n) => n.id === node.path);
       if (graphNode) {
         selectNode(graphNode);
+      } else {
+        const colors = getExtensionColor(node.extension || '');
+        selectNode({
+          id: node.path,
+          type: 'cyber',
+          position: { x: 0, y: 0 },
+          data: {
+            label: node.name,
+            filePath: node.path,
+            extension: node.extension || '',
+            size: node.size,
+            type: 'file',
+            color: colors.bg,
+            glowColor: colors.glow,
+          },
+        });
       }
     },
     [nodes, selectNode]
@@ -66,17 +88,23 @@ export default function FileTree() {
   // Flatten tree respecting expanded state with performance partition
   const flatNodes = useMemo(() => {
     const result: FlatNode[] = [];
+    const q = searchQuery.toLowerCase().trim();
+
     const walk = (items: FileTreeNode[], depth: number) => {
       for (const item of items) {
         if (result.length >= 600) return;
 
-        const matchesSearch =
-          !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
-        if (!matchesSearch && item.type === 'file') continue;
+        if (q) {
+          if (item.type === 'file') {
+            if (!item.name.toLowerCase().includes(q)) continue;
+          } else {
+            if (!hasMatchingDescendant(item, q)) continue;
+          }
+        }
 
-        const isExpanded = expandedDirs.has(item.path) || !!searchQuery;
+        const isExpanded = expandedDirs.has(item.path) || !!q;
         result.push({ node: item, depth, isExpanded });
-        if (item.children && (isExpanded || searchQuery)) {
+        if (item.children && (isExpanded || !!q)) {
           walk(item.children, depth + 1);
         }
       }

@@ -21,11 +21,13 @@ import type {
 const DEFAULT_FILTERS: GraphFilters = {
   showFiles: true,
   showFolders: true,
-  showExternalDeps: false,
+  showExternalDeps: true,
   fileTypes: [],
   maxDepth: 10,
   searchQuery: '',
 };
+
+let viewModeTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useRepoStore = create<RepoState>((set) => ({
   // Data
@@ -80,7 +82,7 @@ export const useRepoStore = create<RepoState>((set) => ({
       sidebarTab: node ? 'preview' : 'structure',
     });
 
-    if (!node || (node.data as any).type !== 'file') return;
+    if (!node || node.data.type !== 'file') return;
 
     const state = useRepoStore.getState();
     const filePath = node.id;
@@ -92,7 +94,7 @@ export const useRepoStore = create<RepoState>((set) => ({
 
   fetchFileImports: async (filePath: string) => {
     const state = useRepoStore.getState();
-    const { owner, repo, isScaleFree, parsedFiles, importEdges } = state;
+    const { owner, repo, isScaleFree, parsedFiles } = state;
 
     if (!owner || !repo || !isScaleFree || parsedFiles.includes(filePath)) return;
 
@@ -126,10 +128,12 @@ export const useRepoStore = create<RepoState>((set) => ({
   setSidebarTab: (tab: 'structure' | 'preview' | 'stats') => set({ sidebarTab: tab }),
   
   setViewMode: (mode: 'constellation' | 'tree') => {
-    set({ viewModeTransitioning: true });
-    set({ viewMode: mode });
-    setTimeout(() => {
+    if (useRepoStore.getState().viewMode === mode) return;
+    if (viewModeTimer) clearTimeout(viewModeTimer);
+    set({ viewModeTransitioning: true, viewMode: mode });
+    viewModeTimer = setTimeout(() => {
       set({ viewModeTransitioning: false });
+      viewModeTimer = null;
     }, 500);
   },
 

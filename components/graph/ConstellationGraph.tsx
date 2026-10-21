@@ -34,6 +34,12 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
 
+  const zoomRef = useRef<d3.ZoomBehavior<HTMLCanvasElement, unknown> | null>(null);
+  const onNodeClickRef = useRef(onNodeClick);
+  useEffect(() => {
+    onNodeClickRef.current = onNodeClick;
+  });
+
   const simRef = useRef<d3.Simulation<SimNode, SimLink> | null>(null);
   const transformRef = useRef(d3.zoomIdentity);
   const hoveredRef = useRef<SimNode | null>(null);
@@ -49,7 +55,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
   // Center camera on selected node when selectedNodeId changes
   useEffect(() => {
     selectedRef.current = selectedNodeId ?? null;
-    if (!selectedNodeId || !canvasRef.current || !containerRef.current) return;
+    if (!selectedNodeId || !canvasRef.current || !containerRef.current || !zoomRef.current) return;
 
     const targetNode = nodesRef.current.find(n => n.id === selectedNodeId);
     if (targetNode && isFinite(targetNode.x!) && isFinite(targetNode.y!)) {
@@ -65,7 +71,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         .duration(650)
         .ease(d3.easeCubicOut)
         .call(
-          (d3.zoom<HTMLCanvasElement, unknown>().scaleExtent([0.05, 10]) as any).transform,
+          zoomRef.current.transform,
           d3.zoomIdentity.translate(targetX, targetY).scale(currentScale)
         );
     }
@@ -83,8 +89,8 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       id: n.id,
       label: n.data.label,
       type: n.type,
-      color: (n.data as any).color || '#3b82f6',
-      glowColor: (n.data as any).glowColor || 'rgba(59,130,246,0.15)',
+      color: ('color' in n.data && typeof n.data.color === 'string') ? n.data.color : '#3b82f6',
+      glowColor: ('glowColor' in n.data && typeof n.data.glowColor === 'string') ? n.data.glowColor : 'rgba(59,130,246,0.15)',
       connections: connCount.get(n.id) ?? 0,
       originalNode: n,
     }));
@@ -118,21 +124,9 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     if (!container || !canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
+    const ctx = canvas.getContext("2d")!;
     let width = container.clientWidth;
     let height = container.clientHeight;
-
-    const resize = () => {
-      width = container.clientWidth;
-      height = container.clientHeight;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-    };
-    resize();
-
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
 
     nodesRef.current = simNodes;
     linksRef.current = simLinks;
@@ -154,7 +148,25 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
 
     simRef.current = sim;
 
-    const ctx = canvas.getContext("2d")!;
+    const resize = () => {
+      width = container.clientWidth;
+      height = container.clientHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      if (simRef.current) {
+        simRef.current
+          .force("x", d3.forceX(width / 2).strength(0.06))
+          .force("y", d3.forceY(height / 2).strength(0.06));
+      }
+      draw();
+    };
+    resize();
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
 
     function draw() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -394,12 +406,13 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
     }
     rafRef.current = requestAnimationFrame(loop);
 
-    function hitTest(e: any): SimNode | null {
+    function hitTest(e: MouseEvent | PointerEvent | TouchEvent): SimNode | null {
       if (!canvas) return null;
       const rect = canvas.getBoundingClientRect();
       const t = transformRef.current;
-      const clientX = e.clientX ?? (e.touches && e.touches[0]?.clientX);
-      const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY);
+      const clientX = 'clientX' in e ? e.clientX : e.touches?.[0]?.clientX;
+      const clientY = 'clientY' in e ? e.clientY : e.touches?.[0]?.clientY;
+      if (clientX === undefined || clientY === undefined) return null;
 
       const mx = (clientX - rect.left - t.x - parallaxCurrent.current.x) / t.k;
       const my = (clientY - rect.top - t.y - parallaxCurrent.current.y) / t.k;
@@ -426,6 +439,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
         draw();
       });
 
+    zoomRef.current = zoom;
     d3.select(canvas).call(zoom);
 
     let hasDragged = false;
@@ -478,17 +492,17 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       }
     }
 
-    function onPointerClick(e: PointerEvent) {
+    function onPointerClick(e: MouseEvent) {
       if (hasDragged) return; // Prevent selection changes if dragging was triggered
       const n = hitTest(e);
-      onNodeClick(n ? n.originalNode : null);
+      onNodeClickRef.current(n ? n.originalNode : null);
     }
 
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointerleave", onPointerUp);
-    canvas.addEventListener("click", onPointerClick as any);
+    canvas.addEventListener("click", onPointerClick);
 
     return () => {
       running = false;
@@ -499,7 +513,7 @@ export default function ConstellationGraph({ nodes: repoNodes, edges: repoEdges,
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointerleave", onPointerUp);
-      canvas.removeEventListener("click", onPointerClick as any);
+      canvas.removeEventListener("click", onPointerClick);
     };
   }, [simNodes, simLinks, adjacency]);
 

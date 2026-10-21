@@ -5,7 +5,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { AlertTriangle, Clock, Lock, RefreshCw, Home, ZapOff } from 'lucide-react';
+import { AlertTriangle, Clock, Lock, ZapOff } from 'lucide-react';
 import Link from 'next/link';
 import type { AppError } from '@/types';
 

@@ -6,10 +6,7 @@
 
 import React, { useMemo } from 'react';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip
-} from 'recharts';
-import {
-  Star, GitFork, Eye, Bug, Scale, Calendar, HardDrive, Users, Activity
+  Star, GitFork, Eye, Bug
 } from 'lucide-react';
 import { useRepoStore } from '@/store/repoStore';
 import { motion } from 'framer-motion';

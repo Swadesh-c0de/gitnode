@@ -27,16 +27,26 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
     const gRef = useRef<SVGGElement>(null);
     const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const rootRef = useRef<D3Node | null>(null);
+    const selectedNodeIdRef = useRef(selectedNodeId);
+    useEffect(() => {
+        selectedNodeIdRef.current = selectedNodeId;
+    });
 
     // Convert FileTree to a single root if needed
     const rootData = useMemo(() => {
         if (fileTree.length === 0) return null;
-        if (fileTree.length === 1) return fileTree[0];
+        const cloneTree = (nodes: FileTreeNode[]): FileTreeNode[] =>
+            nodes.map(n => ({
+                ...n,
+                children: n.children ? cloneTree(n.children) : undefined
+            }));
+        const cloned = cloneTree(fileTree);
+        if (cloned.length === 1) return cloned[0];
         return {
             name: "Root",
             path: "root",
             type: "directory",
-            children: fileTree,
+            children: cloned,
             sha: "root",
         } as FileTreeNode;
     }, [fileTree]);
@@ -80,7 +90,7 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
 
         const nodeEnter = node.enter().append("g")
             .attr("class", "node")
-            .attr("transform", d => `translate(${source.y0 || 0},${source.x0 || 0})`)
+            .attr("transform", () => `translate(${source.y0 || 0},${source.x0 || 0})`)
             .attr("fill-opacity", 0)
             .attr("stroke-opacity", 0)
             .style("cursor", "pointer")
@@ -126,7 +136,8 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
             .attr("stroke-width", 1)
             .attr("filter", d => d.data.type === 'file' ? "url(#glow)" : null);
 
-        nodeEnter.append("text")
+        const primaryText = nodeEnter.append("text")
+            .attr("class", "label-text")
             .attr("dy", "0.31em")
             .attr("x", d => d.data.children ? -8 : 8)
             .attr("text-anchor", d => d.data.children ? "end" : "start")
@@ -135,8 +146,10 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
             .style("font-size", "10px")
             .style("font-weight", d => d.data.type === 'directory' ? "800" : "400")
             .style("letter-spacing", "0.05em")
-            .attr("fill", d => d.data.type === 'directory' ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)")
-            .clone(true).lower()
+            .attr("fill", d => d.data.type === 'directory' ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)");
+
+        primaryText.clone(true).lower()
+            .attr("class", "label-outline")
             .attr("stroke-linejoin", "round")
             .attr("stroke-width", 3)
             .attr("stroke", "black");
@@ -146,11 +159,17 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
             .attr("fill-opacity", 1)
             .attr("stroke-opacity", 1);
 
-        nodeUpdate.select("text")
-            .attr("fill", d => d.data.path === selectedNodeId ? "white" : (d.data.type === 'directory' ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)"));
+        nodeUpdate.select("text.label-text")
+            .attr("fill", d => d.data.path === selectedNodeIdRef.current ? "white" : (d.data.type === 'directory' ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)"));
+
+        nodeUpdate.select("circle")
+            .attr("fill", d => {
+                if (d.data.type === 'directory') return d.data._collapsed ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.2)";
+                return getExtensionColor(d.data.extension || "").bg;
+            });
 
         node.exit().transition().duration(400)
-            .attr("transform", d => `translate(${source.y},${source.x})`)
+            .attr("transform", () => `translate(${source.y},${source.x})`)
             .attr("fill-opacity", 0)
             .attr("stroke-opacity", 0)
             .remove();
@@ -161,28 +180,28 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
 
         const linkEnter = link.enter().insert("path", "g")
             .attr("class", "link")
-            .attr("d", d => {
-                const o = { x: source.x0 || 0, y: source.y0 || 0 };
-                return diagonal({ source: o, target: o } as any);
+            .attr("d", () => {
+                const o = { x: source.x0 || 0, y: source.y0 || 0 } as d3.HierarchyPointNode<HierarchyNodeDatum>;
+                return diagonal({ source: o, target: o });
             })
             .attr("fill", "none")
             .attr("stroke", "rgba(255,255,255,0.15)")
             .attr("stroke-width", 1);
 
-        link.merge(linkEnter).transition().duration(400).attr("d", diagonal as any);
+        link.merge(linkEnter).transition().duration(400).attr("d", d => diagonal(d));
 
         link.exit().transition().duration(400)
-            .attr("d", d => {
-                const o = { x: source.x || 0, y: source.y || 0 };
-                return diagonal({ source: o, target: o } as any);
+            .attr("d", () => {
+                const o = { x: source.x || 0, y: source.y || 0 } as d3.HierarchyPointNode<HierarchyNodeDatum>;
+                return diagonal({ source: o, target: o });
             })
             .remove();
 
-        root.eachBefore((d: any) => {
+        root.eachBefore((d: D3Node) => {
             d.x0 = d.x;
             d.y0 = d.y;
         });
-    }, [onNodeClick, selectedNodeId]);
+    }, [onNodeClick]);
 
     // 1. Initial Setup (Zoom & Refs)
     useEffect(() => {
@@ -220,7 +239,7 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
         rootRef.current = root;
         
         // Apply maxDepth filters
-        root.descendants().forEach((d: any) => {
+        root.descendants().forEach((d: D3Node) => {
             if (d.depth >= (maxDepth || 1) && d.data.children) {
                 d.data._collapsed = true;
             } else if (d.depth < (maxDepth || 1) && d.data.children) {
@@ -235,8 +254,8 @@ export default function TreeGraph({ fileTree, onNodeClick, selectedNodeId, maxDe
     useEffect(() => {
         if (!gRef.current) return;
         const g = d3.select(gRef.current);
-        g.selectAll("g.node").select("text")
-            .attr("fill", (d: any) => d.data.path === selectedNodeId ? "white" : (d.data.type === 'directory' ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)"));
+        g.selectAll<SVGGElement, D3Node>("g.node").select<SVGTextElement>("text.label-text")
+            .attr("fill", d => d.data.path === selectedNodeId ? "white" : (d.data.type === 'directory' ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)"));
     }, [selectedNodeId]);
 
     return (

@@ -6,9 +6,9 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  FileCode, Copy, Check, ExternalLink, Terminal,
+  Copy, Check, ExternalLink, Terminal,
   ZoomIn, ZoomOut, RotateCcw, Download, Image as ImageIcon, Grid
 } from 'lucide-react';
 import hljs from 'highlight.js/lib/core';
@@ -86,14 +86,19 @@ export default function FilePreview() {
     setImgZoom(1);
     setImgDimensions(null);
 
+    const controller = new AbortController();
+    let isCancelled = false;
+
     const fetchContent = async () => {
       useRepoStore.setState({ isLoadingContent: true });
       try {
         const res = await fetch(
-          `/api/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(selectedFilePath)}`
+          `/api/file?owner=${owner}&repo=${repo}&path=${encodeURIComponent(selectedFilePath)}`,
+          { signal: controller.signal }
         );
         const data = await res.json();
-        if (data.content) {
+        if (isCancelled) return;
+        if (res.ok && typeof data.content === 'string') {
           setFileContent(data.content);
           setFileMeta({
             isImage: !!data.isImage,
@@ -103,11 +108,21 @@ export default function FilePreview() {
         } else {
           setFileContent('// Error: Unable to access file content');
         }
-      } catch {
+      } catch (err: unknown) {
+        if (isCancelled || (err instanceof DOMException && err.name === 'AbortError')) return;
         setFileContent('// Error: Connection timeout');
+      } finally {
+        if (!isCancelled) {
+          useRepoStore.setState({ isLoadingContent: false });
+        }
       }
     };
     fetchContent();
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
   }, [selectedFilePath, owner, repo, setFileContent]);
 
   // Apply syntax highlighting for code files
